@@ -1,0 +1,8 @@
+# OpenAI Music Tutor Requirements
+openai>=0.28.0
+
+# TTS Requirements (optional)
+pyttsx3
+
+# Standard library requirements (usually included with Python)
+# argparse, os, sys, time, re, typing 

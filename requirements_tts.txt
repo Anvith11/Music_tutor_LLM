@@ -1,0 +1,9 @@
+# TTS Requirements for TinyLLAMA Music Tutor
+pyttsx3
+
+# pyttsx3 is a cross-platform text-to-speech library that works on:
+# - Windows: Uses SAPI5
+# - macOS: Uses NSSpeechSynthesizer  
+# - Linux: Uses espeak
+
+# No additional dependencies required - uses system TTS engines 
