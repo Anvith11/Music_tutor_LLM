@@ -234,28 +234,82 @@ class MusicTutorRunner:
             # Load processor
             self.processor = AutoProcessor.from_pretrained(self.model_name)
             
+            # Ensure tokenizer has proper special tokens for MPS compatibility
+            if hasattr(self.processor, 'tokenizer'):
+                if self.processor.tokenizer.pad_token is None:
+                    self.processor.tokenizer.pad_token = self.processor.tokenizer.eos_token
+                    print("ℹ️  Set pad_token to eos_token for MPS compatibility")
+            
             # Load model with device mapping
             if self.device == "auto":
-                device_map = "auto"
+                # Smart device mapping for different platforms
+                if torch.cuda.is_available():
+                    device_map = "auto"
+                elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                    # For MPS, load entirely on device to avoid disk offloading issues
+                    device_map = {"": "mps"}
+                else:
+                    # For CPU, load entirely on CPU
+                    device_map = {"": "cpu"}
             else:
                 device_map = None
                 
+            # Determine optimal data type based on device
+            if torch.cuda.is_available():
+                # CUDA supports bfloat16
+                torch_dtype = torch.bfloat16
+            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                # MPS (Apple Silicon) doesn't support bfloat16, use float16
+                torch_dtype = torch.float16
+                print("ℹ️  Using float16 for Apple Silicon compatibility")
+            else:
+                # CPU fallback to float32 for better stability
+                torch_dtype = torch.float32
+                print("ℹ️  Using float32 for CPU inference")
+
             # Try to use flash attention for better performance, fall back to default if not available
             try:
                 self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
                     self.model_name,
                     device_map=device_map,
-                    torch_dtype=torch.bfloat16,
-                    attn_implementation="flash_attention_2" if torch.cuda.is_available() else None
+                    torch_dtype=torch_dtype,
+                    attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+                    low_cpu_mem_usage=True if device_map and "cpu" in str(device_map) else False
                 )
-            except (ImportError, ValueError) as e:
-                # Flash attention not available, use default attention
-                print("ℹ️  Flash attention not available, using default attention mechanism")
-                self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
-                    self.model_name,
-                    device_map=device_map,
-                    torch_dtype=torch.bfloat16
-                )
+            except (ImportError, ValueError, RuntimeError) as e:
+                # Flash attention not available or other compatibility issue, use default attention
+                print(f"ℹ️  Flash attention not available ({e}), using default attention mechanism")
+                try:
+                    self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                        self.model_name,
+                        device_map=device_map,
+                        torch_dtype=torch_dtype
+                    )
+                except RuntimeError as e2:
+                    # Handle memory issues or other device problems
+                    if any(keyword in str(e2) for keyword in ["offload", "memory", "buffer size", "float16", "bfloat16", "Invalid buffer"]):
+                        print(f"ℹ️  Memory/device issue, falling back to CPU with float32: {e2}")
+                        device_map = {"": "cpu"}
+                        torch_dtype = torch.float32
+                        try:
+                            self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                                self.model_name,
+                                device_map=device_map,
+                                torch_dtype=torch_dtype,
+                                low_cpu_mem_usage=True
+                            )
+                        except Exception as e3:
+                            # Final fallback - try loading a smaller model or with minimal settings
+                            print(f"ℹ️  Final fallback - loading with minimal settings: {e3}")
+                            self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                                self.model_name,
+                                torch_dtype=torch.float32,
+                                device_map="cpu",
+                                low_cpu_mem_usage=True,
+                                trust_remote_code=True
+                            )
+                    else:
+                        raise e2
             
             if device_map is None:
                 self.model.to(self.device)
@@ -463,26 +517,72 @@ class MusicTutorRunner:
             
             # Move inputs to device
             device = next(self.model.parameters()).device
-            inputs.input_ids = inputs.input_ids.to(device)
-            if hasattr(inputs, 'attention_mask'):
-                inputs.attention_mask = inputs.attention_mask.to(device)
-            if hasattr(inputs, 'audio_input_ids'):
-                inputs.audio_input_ids = inputs.audio_input_ids.to(device)
+            for key, value in inputs.items():
+                if isinstance(value, torch.Tensor):
+                    inputs[key] = value.to(device)
             
             # Generate response
             with torch.no_grad():
-                generate_ids = self.model.generate(
-                    **inputs, 
-                    max_new_tokens=self.max_tokens,
-                    do_sample=True,
-                    temperature=self.temperature,
-                    top_p=0.9,
-                    pad_token_id=self.processor.tokenizer.eos_token_id
-                )
+                try:
+                    # For MPS compatibility, ensure proper token handling
+                    pad_token_id = self.processor.tokenizer.pad_token_id
+                    if pad_token_id is None:
+                        pad_token_id = self.processor.tokenizer.eos_token_id
+                    
+                    generate_ids = self.model.generate(
+                        **inputs, 
+                        max_new_tokens=self.max_tokens,
+                        do_sample=True,
+                        temperature=self.temperature,
+                        top_p=0.9,
+                        pad_token_id=pad_token_id,
+                        eos_token_id=self.processor.tokenizer.eos_token_id
+                    )
+                except Exception as e:
+                    # Comprehensive error handling for various generation issues
+                    error_msg = str(e)
+                    if any(keyword in error_msg for keyword in ["cache_position", "unexpected keyword argument", "forward()", "got an unexpected"]):
+                        print(f"ℹ️  Generation compatibility issue, trying fallback: {error_msg}")
+                        try:
+                            # First fallback: disable cache and problematic parameters
+                            generate_ids = self.model.generate(
+                                inputs.input_ids,
+                                attention_mask=inputs.get('attention_mask'),
+                                max_new_tokens=self.max_tokens,
+                                do_sample=False,
+                                pad_token_id=pad_token_id,
+                                eos_token_id=self.processor.tokenizer.eos_token_id,
+                                use_cache=False
+                            )
+                        except Exception as e2:
+                            print(f"ℹ️  Second fallback: minimal generation parameters")
+                            # Final fallback with absolutely minimal parameters
+                            generate_ids = self.model.generate(
+                                inputs.input_ids,
+                                max_new_tokens=self.max_tokens,
+                                pad_token_id=pad_token_id
+                            )
+                    else:
+                        raise e
             
             # Decode response
-            generate_ids = generate_ids[:, inputs.input_ids.size(1):]
-            response_text = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+            try:
+                # Check if generate_ids has the expected shape
+                if generate_ids.dim() >= 2 and generate_ids.size(1) > inputs.input_ids.size(1):
+                    generate_ids = generate_ids[:, inputs.input_ids.size(1):]
+                else:
+                    # If shape is unexpected, use the full generated sequence
+                    print(f"⚠️  Unexpected generation shape: {generate_ids.shape}, using full sequence")
+                
+                decoded_responses = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+                response_text = decoded_responses[0] if decoded_responses else "No response generated"
+            except (IndexError, RuntimeError, AttributeError) as decode_error:
+                # Fallback decoding
+                try:
+                    decoded_responses = self.processor.tokenizer.batch_decode(generate_ids, skip_special_tokens=True)
+                    response_text = decoded_responses[0] if decoded_responses else "No response generated"
+                except Exception as e:
+                    response_text = f"Decoding error: {str(decode_error)} | Fallback error: {str(e)}" 
             
             # Prepare return value
             result = {
@@ -574,26 +674,72 @@ class MusicTutorRunner:
             
             # Move inputs to device
             device = next(self.model.parameters()).device
-            inputs.input_ids = inputs.input_ids.to(device)
-            if hasattr(inputs, 'attention_mask'):
-                inputs.attention_mask = inputs.attention_mask.to(device)
-            if hasattr(inputs, 'audio_input_ids'):
-                inputs.audio_input_ids = inputs.audio_input_ids.to(device)
+            for key, value in inputs.items():
+                if isinstance(value, torch.Tensor):
+                    inputs[key] = value.to(device)
             
             # Generate response
             with torch.no_grad():
-                generate_ids = self.model.generate(
-                    **inputs,
-                    max_new_tokens=self.max_tokens,
-                    do_sample=True,
-                    temperature=self.temperature,
-                    top_p=0.9,
-                    pad_token_id=self.processor.tokenizer.eos_token_id
-                )
+                try:
+                    # For MPS compatibility, ensure proper token handling
+                    pad_token_id = self.processor.tokenizer.pad_token_id
+                    if pad_token_id is None:
+                        pad_token_id = self.processor.tokenizer.eos_token_id
+                    
+                    generate_ids = self.model.generate(
+                        **inputs,
+                        max_new_tokens=self.max_tokens,
+                        do_sample=True,
+                        temperature=self.temperature,
+                        top_p=0.9,
+                        pad_token_id=pad_token_id,
+                        eos_token_id=self.processor.tokenizer.eos_token_id
+                    )
+                except Exception as e:
+                    # Comprehensive error handling for various generation issues
+                    error_msg = str(e)
+                    if any(keyword in error_msg for keyword in ["cache_position", "unexpected keyword argument", "forward()", "got an unexpected"]):
+                        print(f"ℹ️  Generation compatibility issue, trying fallback: {error_msg}")
+                        try:
+                            # First fallback: disable cache and problematic parameters
+                            generate_ids = self.model.generate(
+                                inputs.input_ids,
+                                attention_mask=inputs.get('attention_mask'),
+                                max_new_tokens=self.max_tokens,
+                                do_sample=False,
+                                pad_token_id=pad_token_id,
+                                eos_token_id=self.processor.tokenizer.eos_token_id,
+                                use_cache=False
+                            )
+                        except Exception as e2:
+                            print(f"ℹ️  Second fallback: minimal generation parameters")
+                            # Final fallback with absolutely minimal parameters
+                            generate_ids = self.model.generate(
+                                inputs.input_ids,
+                                max_new_tokens=self.max_tokens,
+                                pad_token_id=pad_token_id
+                            )
+                    else:
+                        raise e
             
             # Decode response
-            generate_ids = generate_ids[:, inputs.input_ids.size(1):]
-            response_text = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+            try:
+                # Check if generate_ids has the expected shape
+                if generate_ids.dim() >= 2 and generate_ids.size(1) > inputs.input_ids.size(1):
+                    generate_ids = generate_ids[:, inputs.input_ids.size(1):]
+                else:
+                    # If shape is unexpected, use the full generated sequence
+                    print(f"⚠️  Unexpected generation shape: {generate_ids.shape}, using full sequence")
+                
+                decoded_responses = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+                response_text = decoded_responses[0] if decoded_responses else "No response generated"
+            except (IndexError, RuntimeError, AttributeError) as decode_error:
+                # Fallback decoding
+                try:
+                    decoded_responses = self.processor.tokenizer.batch_decode(generate_ids, skip_special_tokens=True)
+                    response_text = decoded_responses[0] if decoded_responses else "No response generated"
+                except Exception as e:
+                    response_text = f"Decoding error: {str(decode_error)} | Fallback error: {str(e)}" 
             
             return {
                 "text": response_text,
