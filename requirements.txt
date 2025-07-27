@@ -5,7 +5,10 @@ torch>=2.0.0
 transformers>=4.45.0
 tokenizers>=0.19.1
 accelerate>=0.21.0
-flash-attn>=2.5.0  # For better performance on compatible GPUs
+
+# Flash Attention (GPU optimization - optional, CUDA only)
+# Uncomment the line below if you have a compatible NVIDIA GPU with CUDA:
+# flash-attn>=2.5.0
 
 # Audio Processing
 librosa>=0.10.0
@@ -13,8 +16,9 @@ soundfile>=0.12.1
 numpy>=1.24.0
 
 # For quantization and memory optimization (optional)
-autoawq>=0.2.9
-bitsandbytes>=0.41.0
+# Uncomment if you need quantization support:
+# autoawq>=0.2.9
+# bitsandbytes>=0.41.0
 
 # Utility packages
 tqdm>=4.65.0

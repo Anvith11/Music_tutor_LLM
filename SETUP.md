@@ -2,13 +2,38 @@
 
 **Local AI-powered music education with native audio input/output capabilities**
 
+## 🍎 **macOS Quick Start** (Recommended for Mac users)
+
+If you're on macOS (including Apple Silicon M1/M2/M3), use the macOS-specific requirements:
+
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd <repo-name>
+
+# Install macOS-compatible dependencies (no CUDA requirements)
+pip install -r requirements_macos.txt
+
+# Test setup
+python test_qwen_setup.py
+```
+
+**Note**: The first run will download the Qwen2-Audio model (~5-10GB), which may take several minutes.
+
+---
+
 ## Prerequisites
 
 - **Python**: 3.8 or higher
-- **GPU**: NVIDIA GPU with 16GB+ VRAM (recommended)
-- **RAM**: 32GB+ system memory
+- **GPU**: NVIDIA GPU with 16GB+ VRAM (recommended for CUDA systems)
+- **RAM**: 32GB+ system memory (recommended)
 - **Storage**: 20GB+ free disk space for model downloads
-- **CUDA**: 11.8 or higher for GPU acceleration
+- **CUDA**: 11.8 or higher for GPU acceleration (Linux/Windows only)
+
+### 🖥️ **Platform Notes:**
+- **macOS**: Uses CPU/MPS backend (no CUDA support)
+- **Linux/Windows**: Can use CUDA for GPU acceleration
+- **Apple Silicon**: Optimized for M1/M2/M3 processors
 
 ## Installation
 

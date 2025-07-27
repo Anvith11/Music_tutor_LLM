@@ -240,12 +240,22 @@ class MusicTutorRunner:
             else:
                 device_map = None
                 
-            self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
-                self.model_name,
-                device_map=device_map,
-                torch_dtype=torch.bfloat16,
-                attn_implementation="flash_attention_2" if torch.cuda.is_available() else None
-            )
+            # Try to use flash attention for better performance, fall back to default if not available
+            try:
+                self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                    self.model_name,
+                    device_map=device_map,
+                    torch_dtype=torch.bfloat16,
+                    attn_implementation="flash_attention_2" if torch.cuda.is_available() else None
+                )
+            except (ImportError, ValueError) as e:
+                # Flash attention not available, use default attention
+                print("ℹ️  Flash attention not available, using default attention mechanism")
+                self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                    self.model_name,
+                    device_map=device_map,
+                    torch_dtype=torch.bfloat16
+                )
             
             if device_map is None:
                 self.model.to(self.device)

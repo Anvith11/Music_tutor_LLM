@@ -36,12 +36,24 @@ Comprehensive music knowledge covering:
 - **Python**: 3.8 or higher
 
 ### 2. Installation
+
+#### For macOS users (Recommended):
 ```bash
 # Clone repository
 git clone <your-repo-url>
 cd <repo-name>
 
-# Install dependencies
+# Install macOS-compatible dependencies
+pip install -r requirements_macos.txt
+```
+
+#### For Linux/Windows with CUDA:
+```bash
+# Clone repository
+git clone <your-repo-url>
+cd <repo-name>
+
+# Install full dependencies (includes CUDA optimizations)
 pip install -r requirements.txt
 ```
 
