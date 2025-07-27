@@ -4,7 +4,7 @@ Music Tutor Demo (No API Required)
 Showcases the four-pillar knowledge system without OpenAI API calls
 """
 
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def demo_music_knowledge():
     """Demo the music knowledge system without API calls"""
@@ -112,7 +112,7 @@ def show_billing_info():
     print("   • Very affordable for learning!")
     print()
     print("🎉 Once billing is set up:")
-    print("   python tinyllama_runner.py --interactive")
+    print("   python qwen_music_tutor.py --interactive")
 
 if __name__ == "__main__":
     demo_music_knowledge()

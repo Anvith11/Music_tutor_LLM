@@ -7,10 +7,10 @@ Demonstrates how the TinyLLAMA runner filters music vs non-music questions
 import sys
 import os
 
-# Add current directory to path to import tinyllama_runner
+# Add current directory to path to import qwen_music_tutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def test_music_detection():
     """Test the music topic detection functionality"""
@@ -132,14 +132,14 @@ if __name__ == "__main__":
         print("\n🔧 USAGE EXAMPLES:")
         print("-" * 50)
         print("# Music-only mode (default):")
-        print("python tinyllama_runner.py -p \"What is a chord progression?\"")
+        print("python qwen_music_tutor.py -p \"What is a chord progression?\"")
         print("\n# Allow all topics:")
-        print("python tinyllama_runner.py --allow-all-topics -p \"What is Python?\"")
+        print("python qwen_music_tutor.py --allow-all-topics -p \"What is Python?\"")
         print("\n# Interactive music-only mode:")
-        print("python tinyllama_runner.py -i")
+        print("python qwen_music_tutor.py -i")
         
     except ImportError as e:
-        print(f"❌ Error: Could not import tinyllama_runner: {e}")
-        print("Make sure tinyllama_runner.py is in the same directory")
+        print(f"❌ Error: Could not import qwen_music_tutor: {e}")
+        print("Make sure qwen_music_tutor.py is in the same directory")
     except Exception as e:
         print(f"❌ Error: {e}") 

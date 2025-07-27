@@ -4,7 +4,7 @@ Test Interactive Mode Without API Calls
 Tests the input handling and user interaction without making OpenAI API calls
 """
 
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def test_interactive_input():
     """Test interactive input handling without API calls"""
@@ -91,7 +91,7 @@ def test_simple_interactive():
                 
             # Test music detection
             if runner.is_music_related(user_input):
-                print("🤖 Music Tutor: [This would be a music response from OpenAI]")
+                print("🤖 Music Tutor: [This would be a music response from Qwen2-Audio]")
                 print("   ✅ Your question was recognized as music-related")
                 print("   💳 (Actual response blocked due to billing quota)")
             else:

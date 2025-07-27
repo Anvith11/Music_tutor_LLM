@@ -1,192 +1,242 @@
-# TinyLLAMA Runner
+# 🎵 Music Tutor LLM - Qwen2-Audio Edition
 
-A simple Python interface to run TinyLLAMA locally through Ollama.
+**AI-Powered Music Education with Four-Pillar Knowledge System**
 
-## Prerequisites
+Powered by **Qwen2-Audio** for native audio input/output capabilities and local inference
 
-1. **Install Ollama**: Download and install Ollama from [https://ollama.ai](https://ollama.ai)
-2. **Install TinyLLAMA**: Run the following command to download the TinyLLAMA model:
-   ```bash
-   ollama pull tinyllama
-   ```
-3. **Start Ollama**: Make sure Ollama is running:
-   ```bash
-   ollama serve
-   ```
+## 🌟 Key Features
 
-## Installation
+### 🔊 **Native Audio Capabilities**
+- **Audio Input**: Speak your music questions naturally
+- **Audio Analysis**: Analyze music files and audio recordings
+- **Multimodal**: Combine text and audio for rich interactions
+- **Local Processing**: All audio processing happens on your machine
 
-1. Clone or download this repository
-2. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### 🖥️ **Local & Private**
+- **No API costs** - Free to use after setup
+- **Privacy focused** - Your data stays on your machine
+- **Offline capable** - Works without internet after model download
+- **GPU accelerated** - Powerful local inference
 
-## Usage
+## 🎯 Four-Pillar Music Knowledge System
 
-### Interactive Mode (Default)
+Comprehensive music knowledge covering:
 
-Run the script without any arguments to start an interactive chat session:
+1. **🎵 Nashville Numbers** - Practical chord notation and transposition
+2. **🎛️ Slakh Dataset** - 34 professional instrument classes with MIDI mappings
+3. **📖 Music Theory** - Complete educational curriculum from musictheory.net
+4. **🎸 Professional Performance** - Advanced techniques, ear training, and live skills
 
+## 🚀 Quick Start
+
+### 1. System Requirements
+- **GPU**: NVIDIA with 16GB+ VRAM (recommended)
+- **RAM**: 32GB+ system memory
+- **Storage**: 20GB+ free space for model download
+- **Python**: 3.8 or higher
+
+### 2. Installation
 ```bash
-python tinyllama_runner.py
+# Clone repository
+git clone <your-repo-url>
+cd <repo-name>
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-or explicitly:
-
+### 3. Run the Music Tutor
 ```bash
-python tinyllama_runner.py --interactive
+# Interactive mode
+python qwen_music_tutor.py --interactive
+
+# Single text question
+python qwen_music_tutor.py --prompt "What is the circle of fifths?"
+
+# Audio analysis
+python qwen_music_tutor.py --audio song.wav --prompt "What key is this in?"
+
+# Both text and audio input
+python qwen_music_tutor.py --audio question.wav --prompt "Also explain the theory"
 ```
 
-### Single Prompt Mode
+## 📊 Model Options
 
-Send a single prompt and get a response:
+| Model | VRAM | Features | Best For |
+|-------|------|----------|----------|
+| `Qwen/Qwen2-Audio-7B-Instruct` | 16GB+ | Text + Audio input | General use (default) |
+| `Qwen/Qwen2.5-Omni-7B` | 24GB+ | Text + Audio I/O | Audio generation |
+| `Qwen/Qwen2.5-Omni-7B-AWQ` | 12GB+ | Memory optimized | Lower VRAM |
 
 ```bash
-python tinyllama_runner.py --prompt "What is the capital of France?"
+# Use specific model
+python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ --interactive
 ```
 
-### Command Line Options
+## 💬 Usage Examples
 
-- `--prompt`, `-p`: Single prompt to send to TinyLLAMA
-- `--model`, `-m`: Model name (default: tinyllama)
-- `--url`, `-u`: Ollama base URL (default: http://localhost:11434)
-- `--no-stream`: Disable streaming responses
-- `--interactive`, `-i`: Run in interactive mode
-- `--temperature`, `-t`: Temperature for response generation (0.0-1.0, default: 0.7)
-- `--max-tokens`: Maximum number of tokens to generate (default: 800)
-- `--concise`: Force very concise responses to reduce hallucination
-- `--single-mode`: Start in single-question mode (no conversation context)
-- `--context-limit`: Maximum conversation history length (default: 6)
-- `--allow-all-topics`: Allow non-music questions (default: music-only mode)
+### Basic Music Questions
+```bash
+python qwen_music_tutor.py --prompt "Explain secondary dominants in jazz"
+```
 
-### Examples
+### Audio Analysis
+```bash
+# Analyze audio file
+python qwen_music_tutor.py --audio guitar_riff.wav --prompt "What chords are being played?"
 
-1. **Basic usage**:
-   ```bash
-   python tinyllama_runner.py
-   ```
+# Voice questions
+python qwen_music_tutor.py --audio voice_question.wav
+```
 
-2. **Single question**:
-   ```bash
-   python tinyllama_runner.py -p "Explain quantum computing in simple terms"
-   ```
+### Nashville Numbers
+```
+🔹 You: "Convert C-Am-F-G to Nashville numbers"
+🤖 Response: "That's 1-6m-4-5 in the key of C major..."
+```
 
-3. **Use a different model**:
-   ```bash
-   python tinyllama_runner.py -m "llama2" -p "Tell me a joke"
-   ```
+### Professional Analysis
+```
+🔹 You: [Audio of piano performance]
+🤖 Response: "I hear a jazz voicing with a maj7#11 chord, played with rootless voicing technique..."
+```
 
-4. **Use custom Ollama URL**:
-   ```bash
-   python tinyllama_runner.py -u "http://192.168.1.100:11434" -p "Hello"
-   ```
+## 🎼 Interactive Mode Commands
 
-5. **Disable streaming**:
-   ```bash
-   python tinyllama_runner.py --no-stream -p "What is AI?"
-   ```
+```bash
+python qwen_music_tutor.py --interactive
+```
 
-6. **Force concise responses** (to reduce hallucination):
-   ```bash
-   python tinyllama_runner.py --concise -p "What is the capital of France?"
-   ```
+**Commands available:**
+- `quit`, `exit`, `bye` - Exit the program
+- `clear` - Clear conversation history
+- `single` - Toggle single-question mode
+- `context` - Toggle conversational mode
+- `audio <path>` - Include audio file in message
+- `status` - Show system status
 
-7. **Lower temperature for more focused responses**:
-   ```bash
-   python tinyllama_runner.py -t 0.3 -p "Explain machine learning"
-   ```
+## 🔧 Advanced Configuration
 
-8. **Shorter responses**:
-   ```bash
-   python tinyllama_runner.py --max-tokens 200 -p "What is C major scale?"
-   ```
+### Memory Optimization
+```bash
+# Use quantized model for lower VRAM
+python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
 
-9. **Single-question mode** (no context bleeding):
-   ```bash
-   python tinyllama_runner.py --single-mode -p "What is machine learning?"
-   ```
+# Reduce context and token limits
+python qwen_music_tutor.py --max-tokens 400 --context-limit 3
+```
 
-10. **Limited conversation context**:
-    ```bash
-    python tinyllama_runner.py --context-limit 2 -i
-    ```
+### Audio Settings
+```bash
+# Save audio responses to files
+python qwen_music_tutor.py --save-audio --audio-output-dir my_audio
 
-11. **Allow all topics** (disable music-only mode):
-    ```bash
-    python tinyllama_runner.py --allow-all-topics -p "What is Python programming?"
-    ```
+# Custom audio sampling rate
+python qwen_music_tutor.py --audio-sampling-rate 22050
+```
 
-## Interactive Mode Commands
+### Response Style
+```bash
+# Concise responses
+python qwen_music_tutor.py --concise --max-tokens 300
 
-When in interactive mode, you can use these special commands:
+# Allow non-music questions
+python qwen_music_tutor.py --allow-all-topics
+```
 
-- `quit`, `exit`, or `bye`: Exit the program
-- `clear`: Clear the conversation history
-- `single`: Switch to single-question mode (no context between questions)
-- `context`: Switch to conversational mode (maintains context)
+## 📈 Performance & Capabilities
 
-**Mode Explanation**:
-- **Single Mode**: Each question is treated independently - perfect for unrelated questions
-- **Context Mode**: Maintains conversation history - good for follow-up questions on the same topic
+### Audio Processing
+- **Formats**: WAV, MP3, M4A, FLAC
+- **Sample Rate**: Automatically resampled to 16kHz
+- **Max Length**: 30 seconds recommended
+- **Processing**: Real-time audio analysis
 
-**Topic Filtering**:
-- **Music-Only Mode** (default): Only answers music-related questions, politely declines others
-- **All-Topics Mode**: Answers any question (use `--allow-all-topics` to enable)
+### Knowledge Base
+- **500+ music keywords** for intelligent topic detection
+- **Nashville number system** with automatic conversion
+- **34 instrument classes** from professional Slakh dataset
+- **Complete music theory** covering all major topics
+- **Performance techniques** for all skill levels
 
-## Features
+## 🔍 Troubleshooting
 
-- ✅ Interactive chat mode with conversation history
-- ✅ Single prompt mode for quick queries
-- ✅ Streaming responses for real-time output
-- ✅ Connection and model validation
-- ✅ Error handling and user-friendly messages
-- ✅ Customizable model and server settings
-- ✅ Clean, colorful terminal interface
-- ✅ Anti-hallucination features to reduce verbose/inaccurate responses
-- ✅ Configurable response length and temperature controls
-- ✅ Smart conversation management to prevent context bleeding
-- ✅ Single-question mode for independent queries
-- ✅ Music-focused responses with polite topic filtering
-- ✅ Comprehensive music keyword detection system
+### Common Issues
 
-## Troubleshooting
+**Out of Memory:**
+```bash
+# Try quantized model
+python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
 
-### "Cannot connect to Ollama"
-- Make sure Ollama is installed and running: `ollama serve`
-- Check if the Ollama URL is correct (default: http://localhost:11434)
+# Reduce memory usage
+python qwen_music_tutor.py --max-tokens 300 --context-limit 2
+```
 
-### "Model 'tinyllama' not found"
-- Pull the model: `ollama pull tinyllama`
-- Check available models: `ollama list`
+**Model Loading Issues:**
+```bash
+# Check GPU status
+nvidia-smi
 
-### "Module 'requests' not found"
-- Install dependencies: `pip install -r requirements.txt`
+# Verify CUDA installation
+python -c "import torch; print(torch.cuda.is_available())"
+```
 
-### Model giving verbose or inaccurate responses (hallucination)
-- Use the `--concise` flag for shorter, more focused responses
-- Lower the temperature with `-t 0.3` for more deterministic output
-- Reduce response length with `--max-tokens 200` or use `--concise` (automatically limits to 300 tokens)
-- Example: `python tinyllama_runner.py --concise -t 0.3 -p "Your question"`
+**Audio Problems:**
+```bash
+# Test audio loading
+python -c "import librosa; librosa.load('your_audio.wav')"
 
-### Model responses are being cut off or incomplete ✅ FIXED
-- **Issue resolved!** Responses now complete properly with natural conclusions
-- Fixed by removing `repeat_penalty` parameter and adding explicit stop sequence control
-- If you still need longer responses, use `--max-tokens 1200` for detailed explanations
-- Example: `python tinyllama_runner.py --max-tokens 1200 -p "Explain jazz harmony"`
+# Check supported formats
+echo "Supported: WAV, MP3, M4A, FLAC"
+```
 
-### Model connecting unrelated questions (context bleeding)
-- Use `--single-mode` to treat each question independently
-- Type `single` in interactive mode to disable conversation context
-- Limit conversation history with `--context-limit 4`
-- Example: `python tinyllama_runner.py --single-mode -p "Your question"`
+## 🎯 System Requirements Details
 
-### Want to ask non-music questions
-- The model is configured for music-only by default to prevent hallucinations
-- Use `--allow-all-topics` to enable general question answering
-- Example: `python tinyllama_runner.py --allow-all-topics -p "What is Python?"`
-- Note: Music-only mode provides more accurate and focused responses
+### Minimum Requirements
+- **GPU**: 12GB+ VRAM (with AWQ model)
+- **RAM**: 16GB+ system memory
+- **Storage**: 15GB+ free space
+- **Internet**: Required for initial model download
 
-## License
+### Recommended Requirements
+- **GPU**: 16GB+ VRAM (RTX 4080, A4000, or better)
+- **RAM**: 32GB+ system memory
+- **Storage**: 25GB+ free space (SSD preferred)
+- **CUDA**: 11.8 or higher
 
-This project is open source and available under the MIT License. 
+### Optimal Performance
+- **GPU**: 24GB+ VRAM (RTX 4090, A5000, or better)
+- **RAM**: 64GB+ system memory
+- **Storage**: 50GB+ NVMe SSD
+- **CPU**: 8+ cores for audio preprocessing
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Test with diverse musical content
+3. Add new knowledge to the four-pillar system
+4. Enhance audio processing capabilities
+5. Submit pull request with examples
+
+## 📄 License
+
+This project is open source and available under the MIT License.
+
+## 🎉 Acknowledgments
+
+- **Qwen Team** - For the amazing Qwen2-Audio multimodal model
+- **Music Theory Community** - For comprehensive educational resources
+- **Slakh Dataset** - For professional instrument and MIDI data
+- **Open Source Community** - For the tools and libraries that make this possible
+
+---
+
+**🎵 Ready to revolutionize your music learning with local AI? Get started now!**
+
+```bash
+# Check if your system is ready
+python -c "import torch; print('✅ Ready!' if torch.cuda.is_available() else '⚠️ GPU recommended')"
+
+# Start learning!
+python qwen_music_tutor.py --interactive
+``` 

@@ -6,7 +6,7 @@ Demonstrates text-to-speech functionality with music education responses
 
 import sys
 import os
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def demo_tts_music_tutor():
     """Demonstrate TTS functionality with music questions"""
@@ -101,7 +101,7 @@ def demo_voice_selection():
                 print(f"  {i+1}. {voice.name} ({voice.id})")
             
             print("\nTo use a specific voice:")
-            print("python tinyllama_runner.py --enable-tts --audio-prompt-path <voice_id>")
+            print("python qwen_music_tutor.py --enable-tts --audio-prompt-path <voice_id>")
             print("(Where <voice_id> is one of the IDs shown above)")
         else:
             print("❌ No system voices found")

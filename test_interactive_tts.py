@@ -3,7 +3,7 @@
 Test script for interactive TTS functionality
 """
 
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def test_interactive_tts():
     """Test the interactive TTS feature"""

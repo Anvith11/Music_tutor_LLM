@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Music Tutor using OpenAI - Four-Pillar Music Knowledge System
+Music Tutor using Qwen2-Audio - Four-Pillar Music Knowledge System
 Enhanced with comprehensive four-pillar knowledge integration:
 1. Nashville Numbers - Practical chord notation and transposition
 2. Slakh Dataset - Professional instrument and production knowledge  
 3. Music Theory - Complete educational curriculum from musictheory.net
 4. Professional Performance - Advanced performance, ear training, and live techniques
+
+Now powered by Qwen2-Audio for native audio input/output capabilities!
 """
 
 import sys
@@ -13,23 +15,22 @@ import argparse
 import re
 import os
 import time
-from typing import Generator, Optional
+import torch
+import librosa
+import numpy as np
+from typing import Generator, Optional, List, Dict, Any
+from io import BytesIO
+import soundfile as sf
+import tempfile
 
-# OpenAI imports
+# Qwen2-Audio imports
 try:
-    from openai import OpenAI
-    OPENAI_AVAILABLE = True
+    from transformers import Qwen2AudioForConditionalGeneration, AutoProcessor
+    import transformers
+    QWEN_AVAILABLE = True
 except ImportError:
-    OPENAI_AVAILABLE = False
-    print("Warning: openai not available. Install with: pip install openai")
-
-# TTS imports (optional)
-try:
-    import pyttsx3
-    TTS_AVAILABLE = True
-except ImportError:
-    TTS_AVAILABLE = False
-    print("Warning: pyttsx3 not available. Install with: pip install pyttsx3")
+    QWEN_AVAILABLE = False
+    print("Warning: Qwen2-Audio not available. Install with: pip install transformers librosa soundfile")
 
 # Import enhanced Slakh instrument data and music theory knowledge
 try:
@@ -81,43 +82,33 @@ except ImportError:
     print("Warning: Professional performance data not available.")
 
 class MusicTutorRunner:
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo", 
-                 temperature: float = 0.7, max_tokens: int = 800, concise: bool = False,
+    def __init__(self, model_name: str = "Qwen/Qwen2-Audio-7B-Instruct", 
+                 device: str = "auto", temperature: float = 0.7, max_tokens: int = 800, concise: bool = False,
                  single_mode: bool = False, context_limit: int = 6, music_only: bool = True,
-                 enable_tts: bool = False, tts_device: str = "auto", audio_output_dir: str = "audio_output",
-                 audio_prompt_path: Optional[str] = None, save_audio: bool = False):
-        # OpenAI Configuration
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
-        if not self.api_key and OPENAI_AVAILABLE:
-            print("Warning: No OpenAI API key provided. Set OPENAI_API_KEY environment variable or pass api_key parameter.")
+                 audio_output_dir: str = "audio_output", save_audio: bool = False,
+                 audio_input_sampling_rate: int = 16000):
         
-        # Initialize OpenAI client
-        self.openai_client = None
-        if OPENAI_AVAILABLE and self.api_key:
-            self.openai_client = OpenAI(api_key=self.api_key)
-        
-        self.model = model
+        # Qwen2-Audio Configuration
+        self.model_name = model_name
+        self.device = device
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.concise = concise
         self.single_mode = single_mode
         self.context_limit = context_limit
         self.music_only = music_only
-        
-        # TTS Configuration
-        self.enable_tts = enable_tts and TTS_AVAILABLE
-        self.tts_device = tts_device
         self.audio_output_dir = audio_output_dir
-        self.audio_prompt_path = audio_prompt_path
         self.save_audio = save_audio
-        self.tts_model = None
+        self.audio_input_sampling_rate = audio_input_sampling_rate
         
-        # Initialize TTS if enabled
-        if self.enable_tts:
-            self._initialize_tts()
+        # Initialize Qwen2-Audio model
+        self.processor = None
+        self.model = None
+        if QWEN_AVAILABLE:
+            self._initialize_qwen_model()
         
-        # Create audio output directory if TTS is enabled
-        if self.enable_tts and not os.path.exists(self.audio_output_dir):
+        # Create audio output directory
+        if not os.path.exists(self.audio_output_dir):
             os.makedirs(self.audio_output_dir)
             print(f"📁 Created audio output directory: {self.audio_output_dir}")
         
@@ -234,104 +225,58 @@ class MusicTutorRunner:
         
         return False
     
-    def _initialize_tts(self):
-        """Initialize the TTS engine"""
+    def _initialize_qwen_model(self):
+        """Initialize Qwen2-Audio model and processor"""
         try:
-            self.tts_model = pyttsx3.init()
+            print(f"🔄 Loading Qwen2-Audio model: {self.model_name}")
+            print("📦 This may take a few minutes on first run...")
             
-            # Configure TTS settings
-            voices = self.tts_model.getProperty('voices')
-            if voices:
-                # Set voice if available
-                if self.audio_prompt_path and self.audio_prompt_path in [voice.id for voice in voices]:
-                    self.tts_model.setProperty('voice', self.audio_prompt_path)
-                else:
-                    # Use default voice or first available
-                    self.tts_model.setProperty('voice', voices[0].id)
+            # Load processor
+            self.processor = AutoProcessor.from_pretrained(self.model_name)
             
-            # Set speech rate and volume
-            self.tts_model.setProperty('rate', 180)  # Speed of speech
-            self.tts_model.setProperty('volume', 0.9)  # Volume level (0.0 to 1.0)
-            
-            print("🔊 TTS initialized successfully")
-        except Exception as e:
-            print(f"❌ Failed to initialize TTS: {str(e)}")
-            self.enable_tts = False
-            self.tts_model = None
-    
-    def generate_speech(self, text: str, interactive: bool = True) -> bool:
-        """Generate speech from text with interactive playback"""
-        if not self.enable_tts or not self.tts_model:
-            return False
-        
-        try:
-            # Clean text for TTS (remove special characters that might cause issues)
-            clean_text = text.replace("🎯", "").replace("📚", "").replace("🎛️", "").replace("🎸", "")
-            clean_text = re.sub(r'[^\w\s\.\,\!\?\-\:]', '', clean_text).strip()
-            
-            if not clean_text:
-                return False
-            
-            if interactive:
-                # Interactive mode - ask user if they want to hear it
-                print(f"\n🔊 Audio available for this response.")
-                user_input = input("Press [ENTER] to play audio, or type 'skip' to continue: ").strip().lower()
-                
-                if user_input == 'skip':
-                    return False
-                
-                # Play the audio
-                print(f"🔊 Playing audio...")
-                self.tts_model.say(clean_text)
-                self.tts_model.runAndWait()
-                print("✅ Audio playback complete.")
-                
-                # Optionally save to file
-                if self.save_audio:
-                    filepath = self.save_speech_to_file(text)
-                    if filepath:
-                        print(f"💾 Audio also saved to: {filepath}")
-                
-                return True
+            # Load model with device mapping
+            if self.device == "auto":
+                device_map = "auto"
             else:
-                # Non-interactive mode - just play it
-                print(f"🔊 Playing audio...")
-                self.tts_model.say(clean_text)
-                self.tts_model.runAndWait()
+                device_map = None
                 
-                # Optionally save to file
-                if self.save_audio:
-                    filepath = self.save_speech_to_file(text)
-                    if filepath:
-                        print(f"💾 Audio also saved to: {filepath}")
-                
-                return True
+            self.model = Qwen2AudioForConditionalGeneration.from_pretrained(
+                self.model_name,
+                device_map=device_map,
+                torch_dtype=torch.bfloat16,
+                attn_implementation="flash_attention_2" if torch.cuda.is_available() else None
+            )
+            
+            if device_map is None:
+                self.model.to(self.device)
+            
+            print("✅ Qwen2-Audio model loaded successfully!")
+            print(f"🎯 Device: {next(self.model.parameters()).device}")
             
         except Exception as e:
-            print(f"❌ TTS playback failed: {str(e)}")
-            return False
+            print(f"❌ Failed to load Qwen2-Audio model: {str(e)}")
+            print("💡 Make sure you have sufficient GPU memory (recommended: 16GB+ VRAM)")
+            self.processor = None
+            self.model = None
     
-    def save_speech_to_file(self, text: str, filename_prefix: str = "response") -> Optional[str]:
-        """Save speech to file (optional feature)"""
-        if not self.enable_tts or not self.tts_model:
-            return None
-        
+    def load_audio_file(self, audio_path: str) -> Optional[np.ndarray]:
+        """Load audio file and resample to required sample rate"""
         try:
-            # Clean text for TTS
-            clean_text = text.replace("🎯", "").replace("📚", "").replace("🎛️", "").replace("🎸", "")
-            clean_text = re.sub(r'[^\w\s\.\,\!\?\-\:]', '', clean_text).strip()
-            
-            if not clean_text:
-                return None
-            
-            # Generate timestamp for unique filename
+            audio_data, sample_rate = librosa.load(audio_path, sr=self.audio_input_sampling_rate)
+            return audio_data
+        except Exception as e:
+            print(f"❌ Error loading audio file {audio_path}: {str(e)}")
+            return None
+    
+    def save_audio_response(self, audio_data: np.ndarray, filename_prefix: str = "response") -> Optional[str]:
+        """Save audio response to file"""
+        try:
             timestamp = int(time.time())
             filename = f"{filename_prefix}_{timestamp}.wav"
             filepath = os.path.join(self.audio_output_dir, filename)
             
-            # Save to file
-            self.tts_model.save_to_file(clean_text, filepath)
-            self.tts_model.runAndWait()
+            # Save audio using soundfile
+            sf.write(filepath, audio_data, self.audio_input_sampling_rate)
             
             if os.path.exists(filepath):
                 return filepath
@@ -348,6 +293,7 @@ class MusicTutorRunner:
             "slakh_professional": SLAKH_AVAILABLE,
             "music_theory": THEORY_AVAILABLE,
             "professional_performance": PERFORMANCE_AVAILABLE,
+            "qwen_audio": QWEN_AVAILABLE and self.model is not None,
             "total_keywords": len(self.music_keywords) if hasattr(self, 'music_keywords') else 0
         }
         
@@ -424,147 +370,159 @@ class MusicTutorRunner:
         
         return ", ".join(capabilities)
         
-    def check_connection(self) -> bool:
-        """Check if OpenAI API is accessible"""
-        if not OPENAI_AVAILABLE:
-            return False
+    def check_model_status(self) -> bool:
+        """Check if Qwen2-Audio model is loaded and ready"""
+        return QWEN_AVAILABLE and self.model is not None and self.processor is not None
+    
+    def generate_response(self, prompt: str = None, audio_path: str = None, 
+                         stream: bool = False, output_audio: bool = True) -> Dict[str, Any]:
+        """Generate response from Qwen2-Audio with comprehensive knowledge integration"""
+        if not self.check_model_status():
+            return {
+                "text": "Error: Qwen2-Audio model not available or not loaded properly",
+                "audio": None,
+                "audio_path": None
+            }
         
-        if not self.openai_client:
-            return False
-            
-        try:
-            # Test API connection with a simple request
-            self.openai_client.models.list()
-            return True
-        except Exception as e:
-            print(f"OpenAI API connection failed: {str(e)}")
-            return False
-    
-    def check_model_exists(self) -> bool:
-        """Check if the specified model is available"""
-        if not OPENAI_AVAILABLE or not self.openai_client:
-            return False
-            
-        try:
-            models = self.openai_client.models.list()
-            available_models = [model.id for model in models.data]
-            return self.model in available_models
-        except Exception as e:
-            print(f"Model check failed: {str(e)}")
-            # Return True for common models even if we can't check
-            common_models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo-preview", "gpt-3.5-turbo-16k"]
-            return self.model in common_models
-    
-    def generate_response(self, prompt: str, stream: bool = True) -> Generator[str, None, None]:
-        """Generate response from OpenAI with comprehensive knowledge integration"""
-        if not OPENAI_AVAILABLE or not self.openai_client:
-            yield "Error: OpenAI API not available or API key not set"
-            return
-            
-        # Check if question is music-related
-        if not self.is_music_related(prompt):
+        # Prepare conversation
+        conversation = []
+        
+        # Check if question is music-related (for text inputs)
+        if prompt and not self.is_music_related(prompt):
             capabilities = self.get_comprehensive_capabilities()
             response_text = f"I'm sorry, I can only explain music-related questions or concepts. I specialize in {capabilities}. Please ask me about music theory, Nashville numbers, chord progressions, instruments, or other musical topics!"
-            yield response_text
-            
-            # Generate TTS for non-music response if enabled
-            if self.enable_tts:
-                self.generate_speech(response_text, interactive=False)
-            return
+            return {
+                "text": response_text,
+                "audio": None,
+                "audio_path": None
+            }
         
-        # Enrich the prompt with relevant knowledge context
-        enriched_prompt = self.enrich_context_with_knowledge(prompt)
+        # Build conversation based on inputs
+        user_content = []
         
-        # Build comprehensive capability description
+        if audio_path:
+            # Load and validate audio
+            audio_data = self.load_audio_file(audio_path)
+            if audio_data is None:
+                return {
+                    "text": "Error: Could not load audio file",
+                    "audio": None,
+                    "audio_path": None
+                }
+            user_content.append({"type": "audio", "audio": audio_data})
+        
+        if prompt:
+            # Enrich the prompt with relevant knowledge context
+            enriched_prompt = self.enrich_context_with_knowledge(prompt)
+            user_content.append({"type": "text", "text": enriched_prompt})
+        
+        if not user_content:
+            return {
+                "text": "Error: No input provided (need either text prompt or audio)",
+                "audio": None,
+                "audio_path": None
+            }
+        
+        conversation.append({"role": "user", "content": user_content})
+        
+        # Build comprehensive system prompt
         capability_desc = self.get_comprehensive_capabilities()
         
         if self.concise:
             system_content = f"You are a comprehensive music expert with knowledge of {capability_desc}. Give very brief, direct answers about music. Connect concepts across Nashville numbers, professional instruments, and music theory when relevant."
-            # Use smaller token limit for concise mode
-            token_limit = min(self.max_tokens, 300)
         else:
             system_content = f"You are a comprehensive music expert with knowledge of {capability_desc}. Answer concisely and accurately about music theory, instruments, and musical concepts. Connect concepts across Nashville numbers, professional instruments, and music theory when relevant. If you don't know something, say so. Keep responses educational and practical."
-            token_limit = self.max_tokens
         
-        messages = [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": enriched_prompt}
-        ]
+        # Add system message
+        conversation.insert(0, {"role": "system", "content": system_content})
         
         try:
-            if stream:
-                response = self.openai_client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=token_limit,
+            # Apply chat template
+            text = self.processor.apply_chat_template(conversation, add_generation_prompt=True, tokenize=False)
+            
+            # Prepare audio inputs
+            audios = []
+            for message in conversation:
+                if isinstance(message["content"], list):
+                    for ele in message["content"]:
+                        if ele.get("type") == "audio" and "audio" in ele:
+                            audios.append(ele["audio"])
+            
+            # Process inputs
+            inputs = self.processor(text=text, audios=audios if audios else None, return_tensors="pt", padding=True)
+            
+            # Move inputs to device
+            device = next(self.model.parameters()).device
+            inputs.input_ids = inputs.input_ids.to(device)
+            if hasattr(inputs, 'attention_mask'):
+                inputs.attention_mask = inputs.attention_mask.to(device)
+            if hasattr(inputs, 'audio_input_ids'):
+                inputs.audio_input_ids = inputs.audio_input_ids.to(device)
+            
+            # Generate response
+            with torch.no_grad():
+                generate_ids = self.model.generate(
+                    **inputs, 
+                    max_new_tokens=self.max_tokens,
+                    do_sample=True,
                     temperature=self.temperature,
                     top_p=0.9,
-                    stream=True
+                    pad_token_id=self.processor.tokenizer.eos_token_id
                 )
-                
-                full_response = ""
-                for chunk in response:
-                    if chunk.choices and len(chunk.choices) > 0:
-                        delta = chunk.choices[0].delta
-                        if delta.content:
-                            content = delta.content
-                            full_response += content
-                            yield content
-                
-                # Generate TTS for the complete response if enabled
-                if self.enable_tts and full_response.strip():
-                    self.generate_speech(full_response, interactive=True)
-            else:
-                response = self.openai_client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=token_limit,
-                    temperature=self.temperature,
-                    top_p=0.9
-                )
-                
-                if response.choices:
-                    response_text = response.choices[0].message.content
-                    yield response_text
-                    
-                    # Generate TTS for the complete response if enabled
-                    if self.enable_tts and response_text.strip():
-                        self.generate_speech(response_text, interactive=True)
-                
+            
+            # Decode response
+            generate_ids = generate_ids[:, inputs.input_ids.size(1):]
+            response_text = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+            
+            # Prepare return value
+            result = {
+                "text": response_text,
+                "audio": None,
+                "audio_path": None
+            }
+            
+            # Note: Qwen2-Audio primarily generates text responses
+            # For audio output, you would need Qwen2.5-Omni which has audio generation capabilities
+            # For now, we'll return text responses only
+            
+            return result
+            
         except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            yield error_msg
-            if self.enable_tts:
-                self.generate_speech(error_msg, interactive=False)
+            error_msg = f"Error generating response: {str(e)}"
+            return {
+                "text": error_msg,
+                "audio": None,
+                "audio_path": None
+            }
     
-    def chat_response(self, messages: list, stream: bool = True) -> Generator[str, None, None]:
-        """Generate chat response from OpenAI with comprehensive knowledge integration"""
-        if not OPENAI_AVAILABLE or not self.openai_client:
-            yield "Error: OpenAI API not available or API key not set"
-            return
+    def chat_response(self, messages: list, stream: bool = False) -> Dict[str, Any]:
+        """Generate chat response from Qwen2-Audio with comprehensive knowledge integration"""
+        if not self.check_model_status():
+            return {
+                "text": "Error: Qwen2-Audio model not available or not loaded properly",
+                "audio": None,
+                "audio_path": None
+            }
             
         # Check if the latest user message is music-related
         user_messages = [msg for msg in messages if msg.get("role") == "user"]
-        if user_messages and not self.is_music_related(user_messages[-1].get("content", "")):
-            capabilities = self.get_comprehensive_capabilities()
-            response_text = f"I'm sorry, I can only explain music-related questions or concepts. I specialize in {capabilities}. Please ask me about music theory, Nashville numbers, chord progressions, instruments, or other musical topics!"
-            yield response_text
-            
-            # Generate TTS for non-music response if enabled
-            if self.enable_tts:
-                self.generate_speech(response_text, interactive=False)
-            return
-        
-        # Enrich the latest user message with knowledge context if available
         if user_messages:
-            latest_message = user_messages[-1]
-            enriched_content = self.enrich_context_with_knowledge(latest_message.get("content", ""))
-            if enriched_content != latest_message.get("content", ""):
-                # Update the latest message with enriched content
-                for i, msg in enumerate(messages):
-                    if msg.get("role") == "user" and msg.get("content") == latest_message.get("content"):
-                        messages[i] = {**msg, "content": enriched_content}
-                        break
+            latest_content = user_messages[-1].get("content", "")
+            # Extract text from content if it's a list
+            if isinstance(latest_content, list):
+                text_parts = [item.get("text", "") for item in latest_content if item.get("type") == "text"]
+                latest_text = " ".join(text_parts)
+            else:
+                latest_text = latest_content
+            
+            if latest_text and not self.is_music_related(latest_text):
+                capabilities = self.get_comprehensive_capabilities()
+                response_text = f"I'm sorry, I can only explain music-related questions or concepts. I specialize in {capabilities}. Please ask me about music theory, Nashville numbers, chord progressions, instruments, or other musical topics!"
+                return {
+                    "text": response_text,
+                    "audio": None,
+                    "audio_path": None
+                }
         
         # Build comprehensive system prompt
         capability_desc = self.get_comprehensive_capabilities()
@@ -582,70 +540,68 @@ class MusicTutorRunner:
             
         if self.concise:
             system_content = f"You are a comprehensive music expert assistant. {expertise_desc}. Give very brief, direct answers about music topics only. Connect concepts across Nashville numbers, professional instruments, and music theory when relevant."
-            # Use smaller token limit for concise mode
-            token_limit = min(self.max_tokens, 300)
         else:
             system_content = f"You are a comprehensive music expert assistant. {expertise_desc}. Give concise, accurate answers about music topics. Connect concepts across Nashville numbers, professional instruments, and music theory when relevant. If you don't know something about music, say so. Keep responses educational and practical."
-            token_limit = self.max_tokens
-        
-        system_prompt = {
-            "role": "system", 
-            "content": system_content
-        }
         
         # Insert system prompt if not already present
         if not messages or messages[0].get("role") != "system":
-            messages = [system_prompt] + messages
+            messages = [{"role": "system", "content": system_content}] + messages
         
         try:
-            if stream:
-                response = self.openai_client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=token_limit,
+            # Apply chat template
+            text = self.processor.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
+            
+            # Prepare audio inputs
+            audios = []
+            for message in messages:
+                if isinstance(message.get("content"), list):
+                    for ele in message["content"]:
+                        if ele.get("type") == "audio" and "audio" in ele:
+                            audios.append(ele["audio"])
+            
+            # Process inputs
+            inputs = self.processor(text=text, audios=audios if audios else None, return_tensors="pt", padding=True)
+            
+            # Move inputs to device
+            device = next(self.model.parameters()).device
+            inputs.input_ids = inputs.input_ids.to(device)
+            if hasattr(inputs, 'attention_mask'):
+                inputs.attention_mask = inputs.attention_mask.to(device)
+            if hasattr(inputs, 'audio_input_ids'):
+                inputs.audio_input_ids = inputs.audio_input_ids.to(device)
+            
+            # Generate response
+            with torch.no_grad():
+                generate_ids = self.model.generate(
+                    **inputs,
+                    max_new_tokens=self.max_tokens,
+                    do_sample=True,
                     temperature=self.temperature,
                     top_p=0.9,
-                    stream=True
+                    pad_token_id=self.processor.tokenizer.eos_token_id
                 )
-                
-                full_response = ""
-                for chunk in response:
-                    if chunk.choices and len(chunk.choices) > 0:
-                        delta = chunk.choices[0].delta
-                        if delta.content:
-                            content = delta.content
-                            full_response += content
-                            yield content
-                
-                # Generate TTS for the complete response if enabled
-                if self.enable_tts and full_response.strip():
-                    self.generate_speech(full_response, interactive=True)
-            else:
-                response = self.openai_client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    max_tokens=token_limit,
-                    temperature=self.temperature,
-                    top_p=0.9
-                )
-                
-                if response.choices:
-                    response_text = response.choices[0].message.content
-                    yield response_text
-                    
-                    # Generate TTS for the complete response if enabled
-                    if self.enable_tts and response_text.strip():
-                        self.generate_speech(response_text, interactive=True)
-                    
+            
+            # Decode response
+            generate_ids = generate_ids[:, inputs.input_ids.size(1):]
+            response_text = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0]
+            
+            return {
+                "text": response_text,
+                "audio": None,
+                "audio_path": None
+            }
+            
         except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            yield error_msg
-            if self.enable_tts:
-                self.generate_speech(error_msg, interactive=False)
+            error_msg = f"Error generating chat response: {str(e)}"
+            return {
+                "text": error_msg,
+                "audio": None,
+                "audio_path": None
+            }
     
     def interactive_mode(self):
         """Run in interactive chat mode"""
-        print("🎵 Music Tutor Interactive Mode - Comprehensive Music Expert")
+        print("🎵 Qwen2-Audio Music Tutor Interactive Mode - Comprehensive Music Expert")
         print("-" * 70)
         
         # Show knowledge system status
@@ -655,14 +611,11 @@ class MusicTutorRunner:
         print(f"  🎛️ Slakh Professional: {'✅' if knowledge_status['slakh_professional'] else '❌'} {'(' + str(knowledge_status.get('slakh_instruments', 0)) + ' instruments)' if knowledge_status['slakh_professional'] else ''}")
         print(f"  📖 Music Theory: {'✅' if knowledge_status['music_theory'] else '❌'} {'(' + str(knowledge_status.get('theory_sections', 0)) + ' sections)' if knowledge_status['music_theory'] else ''}")
         print(f"  🎸 Professional Performance: {'✅' if knowledge_status['professional_performance'] else '❌'} {'(' + str(knowledge_status.get('performance_sections', 0)) + ' areas)' if knowledge_status['professional_performance'] else ''}")
+        print(f"  🔊 Qwen2-Audio: {'✅ Ready' if knowledge_status.get('qwen_audio', False) else '❌ Not Available'}")
         print(f"  📊 Total Keywords: {knowledge_status['total_keywords']}")
-        print(f"  🔊 Text-to-Speech: {'✅ Enabled' if self.enable_tts else '❌ Disabled'}")
-        if self.enable_tts:
-            print(f"      Mode: {'🎙️ Interactive playback' if not self.save_audio else '🎙️ Interactive + 💾 File saving'}")
-            if self.save_audio:
-                print(f"      Audio Output: {self.audio_output_dir}")
-            if self.audio_prompt_path:
-                print(f"      Voice: {self.audio_prompt_path}")
+        print(f"  💾 Audio Output: {'✅ Enabled' if self.save_audio else '❌ Disabled'}")
+        if self.save_audio:
+            print(f"      Directory: {self.audio_output_dir}")
         print()
         
         # Show capabilities
@@ -675,9 +628,8 @@ class MusicTutorRunner:
         print("  Type 'clear' to clear conversation history")
         print("  Type 'single' to toggle single-question mode (no context)")
         print("  Type 'context' to toggle context mode (maintains conversation)")
+        print("  Type 'audio <path>' to include audio file in your message")
         print("  Type 'status' to show knowledge system status")
-        if self.enable_tts:
-            print("  🔊 After each response, you'll be prompted to play audio")
         if self.music_only:
             print("🎵 Music-only mode: I can only answer music-related questions")
         else:
@@ -740,13 +692,41 @@ class MusicTutorRunner:
                 if not user_input:
                     continue
                 
+                # Check for audio file input
+                audio_path = None
+                if user_input.lower().startswith('audio '):
+                    parts = user_input.split(' ', 1)
+                    if len(parts) > 1:
+                        audio_path = parts[1].strip()
+                        user_input = input("🔹 Text (optional): ").strip()
+                        if not user_input and not audio_path:
+                            continue
+                
+                # Prepare message content
+                user_content = []
+                if audio_path:
+                    # Load audio
+                    audio_data = self.load_audio_file(audio_path)
+                    if audio_data is not None:
+                        user_content.append({"type": "audio", "audio": audio_data})
+                        print(f"🎵 Audio loaded: {audio_path}")
+                    else:
+                        print(f"❌ Could not load audio file: {audio_path}")
+                        continue
+                
+                if user_input:
+                    user_content.append({"type": "text", "text": user_input})
+                
+                if not user_content:
+                    continue
+                
                 # Prepare messages for this interaction
                 if single_question_mode:
                     # Single question mode - no conversation history
-                    current_messages = [{"role": "user", "content": user_input}]
+                    current_messages = [{"role": "user", "content": user_content}]
                 else:
                     # Conversational mode - add to history and manage length
-                    conversation_history.append({"role": "user", "content": user_input})
+                    conversation_history.append({"role": "user", "content": user_content})
                     
                     # Limit conversation history to prevent excessive context
                     if len(conversation_history) > max_history_length:
@@ -757,23 +737,26 @@ class MusicTutorRunner:
                     
                     current_messages = conversation_history.copy()
                 
-                print("🤖 Music Tutor: ", end="", flush=True)
+                print("🤖 Qwen Music Tutor: ", end="", flush=True)
                 
                 # Generate response
-                response_content = ""
-                for chunk in self.chat_response(current_messages):
-                    if chunk and not chunk.startswith("Error:"):
-                        print(chunk, end="", flush=True)
-                        response_content += chunk
-                    elif chunk.startswith("Error:"):
-                        print(f"\n❌ {chunk}")
-                        break
+                result = self.chat_response(current_messages)
                 
-                if response_content:
+                if result["text"] and not result["text"].startswith("Error:"):
+                    print(result["text"])
+                    
                     if not single_question_mode:
                         # Add assistant response to history only in conversational mode
-                        conversation_history.append({"role": "assistant", "content": response_content})
-                    print()  # New line after response
+                        conversation_history.append({"role": "assistant", "content": result["text"]})
+                    
+                    # Save audio if generated
+                    if result["audio"] is not None and self.save_audio:
+                        audio_path = self.save_audio_response(result["audio"])
+                        if audio_path:
+                            print(f"💾 Audio saved: {audio_path}")
+                    
+                elif result["text"].startswith("Error:"):
+                    print(f"\n❌ {result['text']}")
                     
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")
@@ -782,11 +765,11 @@ class MusicTutorRunner:
                 print(f"\n❌ Error: {str(e)}")
 
 def main():
-    parser = argparse.ArgumentParser(description="Music Tutor using OpenAI")
-    parser.add_argument("--prompt", "-p", type=str, help="Single prompt to send to the music tutor")
-    parser.add_argument("--model", "-m", type=str, default="gpt-3.5-turbo", help="Model name (default: gpt-3.5-turbo)")
-    parser.add_argument("--api-key", "-k", type=str, help="OpenAI API key (or set OPENAI_API_KEY environment variable)")
-    parser.add_argument("--no-stream", action="store_true", help="Disable streaming responses")
+    parser = argparse.ArgumentParser(description="Music Tutor using Qwen2-Audio")
+    parser.add_argument("--prompt", "-p", type=str, help="Single text prompt to send to the music tutor")
+    parser.add_argument("--audio", "-a", type=str, help="Audio file path for audio input")
+    parser.add_argument("--model", "-m", type=str, default="Qwen/Qwen2-Audio-7B-Instruct", help="Qwen2-Audio model name")
+    parser.add_argument("--device", "-d", type=str, default="auto", help="Device for model (auto, cuda, cpu)")
     parser.add_argument("--interactive", "-i", action="store_true", help="Run in interactive mode")
     parser.add_argument("--temperature", "-t", type=float, default=0.7, help="Temperature for response generation (0.0-1.0, default: 0.7)")
     parser.add_argument("--max-tokens", type=int, default=800, help="Maximum number of tokens to generate (default: 800)")
@@ -794,51 +777,38 @@ def main():
     parser.add_argument("--single-mode", action="store_true", help="Start in single-question mode (no conversation context)")
     parser.add_argument("--context-limit", type=int, default=6, help="Maximum conversation history length (default: 6)")
     parser.add_argument("--allow-all-topics", action="store_true", help="Allow non-music questions (default: music-only mode)")
-    
-    # TTS arguments
-    parser.add_argument("--enable-tts", action="store_true", help="Enable text-to-speech for responses")
-    parser.add_argument("--tts-device", type=str, default="auto", help="TTS device: 'auto', 'cuda', or 'cpu' (default: auto)")
     parser.add_argument("--audio-output-dir", type=str, default="audio_output", help="Directory for audio output files (default: audio_output)")
-    parser.add_argument("--audio-prompt-path", type=str, help="Voice ID for specific system voice (see tts_demo.py voice for list)")
-    parser.add_argument("--save-audio", action="store_true", help="Also save audio responses to files")
+    parser.add_argument("--save-audio", action="store_true", help="Save audio responses to files")
+    parser.add_argument("--audio-sampling-rate", type=int, default=16000, help="Audio input sampling rate (default: 16000)")
     
     args = parser.parse_args()
     
     # Initialize runner
     runner = MusicTutorRunner(
-        api_key=args.api_key,
-        model=args.model,
+        model_name=args.model,
+        device=args.device,
         temperature=args.temperature,
         max_tokens=args.max_tokens,
         concise=args.concise,
         single_mode=args.single_mode,
         context_limit=args.context_limit,
         music_only=not args.allow_all_topics,
-        enable_tts=args.enable_tts,
-        tts_device=args.tts_device,
         audio_output_dir=args.audio_output_dir,
-        audio_prompt_path=args.audio_prompt_path,
-        save_audio=args.save_audio
+        save_audio=args.save_audio,
+        audio_input_sampling_rate=args.audio_sampling_rate
     )
     
-    # Check connection
-    print("🔍 Checking OpenAI API connection...")
-    if not runner.check_connection():
-        print("❌ Error: Cannot connect to OpenAI API.")
-        print("   Make sure you have set your OPENAI_API_KEY environment variable or passed --api-key")
-        print("   Get your API key from: https://platform.openai.com/api-keys")
+    # Check model status
+    print("🔍 Checking Qwen2-Audio model status...")
+    if not runner.check_model_status():
+        print("❌ Error: Qwen2-Audio model not loaded properly.")
+        print("   Make sure you have:")
+        print("   1. Sufficient GPU memory (recommended: 16GB+ VRAM)")
+        print("   2. Installed required packages: pip install transformers librosa soundfile torch")
+        print("   3. Internet connection for model download (first run)")
         sys.exit(1)
     
-    print("✅ Connected to OpenAI API!")
-    
-    # Check model
-    print(f"🔍 Checking if model '{args.model}' is available...")
-    if not runner.check_model_exists():
-        print(f"❌ Error: Model '{args.model}' may not be available.")
-        print(f"   Available models: gpt-3.5-turbo, gpt-4, gpt-4-turbo-preview")
-        print(f"   Continuing anyway...")
-    else:
-        print(f"✅ Model '{args.model}' is available!")
+    print("✅ Qwen2-Audio model ready!")
     
     # Show four-pillar knowledge system status
     knowledge_status = runner.get_knowledge_status()
@@ -847,14 +817,11 @@ def main():
     print(f"  🎛️ Slakh Professional: {'✅' if knowledge_status['slakh_professional'] else '❌'} {'(' + str(knowledge_status.get('slakh_instruments', 0)) + ' instruments)' if knowledge_status['slakh_professional'] else ''}")
     print(f"  📖 Music Theory: {'✅' if knowledge_status['music_theory'] else '❌'} {'(' + str(knowledge_status.get('theory_sections', 0)) + ' sections)' if knowledge_status['music_theory'] else ''}")
     print(f"  🎸 Professional Performance: {'✅' if knowledge_status['professional_performance'] else '❌'} {'(' + str(knowledge_status.get('performance_sections', 0)) + ' areas)' if knowledge_status['professional_performance'] else ''}")
+    print(f"  🔊 Qwen2-Audio: {'✅ Ready' if knowledge_status.get('qwen_audio', False) else '❌ Not Available'}")
     print(f"  📊 Total Keywords: {knowledge_status['total_keywords']}")
-    print(f"  🔊 Text-to-Speech: {'✅ Enabled' if runner.enable_tts else '❌ Disabled'}")
-    if runner.enable_tts:
-        print(f"      Mode: {'🎙️ Interactive playback' if not runner.save_audio else '🎙️ Interactive + 💾 File saving'}")
-        if runner.save_audio:
-            print(f"      Audio Output: {runner.audio_output_dir}")
-        if runner.audio_prompt_path:
-            print(f"      Voice: {runner.audio_prompt_path}")
+    print(f"  💾 Audio Output: {'✅ Enabled' if runner.save_audio else '❌ Disabled'}")
+    if runner.save_audio:
+        print(f"      Directory: {runner.audio_output_dir}")
     
     # Calculate enhancement factor
     base_keywords = 25  # Original Nashville numbers keywords
@@ -864,19 +831,34 @@ def main():
     print()
     
     # Run based on arguments
-    if args.interactive or (not args.prompt and not args.interactive):
+    if args.interactive or (not args.prompt and not args.audio):
         runner.interactive_mode()
-    elif args.prompt:
-        print(f"🔹 Prompt: {args.prompt}")
-        print("🤖 Music Tutor: ", end="", flush=True)
+    elif args.prompt or args.audio:
+        print(f"🔹 Processing request...")
+        if args.prompt:
+            print(f"   Text: {args.prompt}")
+        if args.audio:
+            print(f"   Audio: {args.audio}")
         
-        for chunk in runner.generate_response(args.prompt, stream=not args.no_stream):
-            if chunk and not chunk.startswith("Error:"):
-                print(chunk, end="", flush=True)
-            elif chunk.startswith("Error:"):
-                print(f"\n❌ {chunk}")
-                break
-        print()  # New line after response
+        print("🤖 Qwen Music Tutor: ")
+        
+        result = runner.generate_response(
+            prompt=args.prompt,
+            audio_path=args.audio,
+            output_audio=True
+        )
+        
+        if result["text"] and not result["text"].startswith("Error:"):
+            print(result["text"])
+            
+            # Save audio if generated
+            if result["audio"] is not None and args.save_audio:
+                audio_path = runner.save_audio_response(result["audio"])
+                if audio_path:
+                    print(f"\n💾 Audio saved: {audio_path}")
+                    
+        elif result["text"].startswith("Error:"):
+            print(f"❌ {result['text']}")
 
 if __name__ == "__main__":
     main() 

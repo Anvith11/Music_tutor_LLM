@@ -5,7 +5,7 @@ This script demonstrates how to use the music tutor with your API key.
 """
 
 import os
-from tinyllama_runner import MusicTutorRunner
+from qwen_music_tutor import MusicTutorRunner
 
 def load_api_key():
     """Load API key from .env file or environment"""
@@ -80,9 +80,9 @@ def main():
     
     print(f"\n🎉 Demo complete! Your music tutor is ready to use.")
     print(f"\n💡 To start interactive mode:")
-    print(f"   python tinyllama_runner.py --interactive")
+    print(f"   python qwen_music_tutor.py --interactive")
     print(f"\n💡 To ask a single question:")
-    print(f"   python tinyllama_runner.py --prompt \"Your question here\"")
+    print(f"   python qwen_music_tutor.py --prompt \"Your question here\"")
 
 if __name__ == "__main__":
     main() 
