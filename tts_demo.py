@@ -6,7 +6,7 @@ Demonstrates text-to-speech functionality with music education responses
 
 import sys
 import os
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def demo_tts_music_tutor():
     """Demonstrate TTS functionality with music questions"""
@@ -24,11 +24,10 @@ def demo_tts_music_tutor():
     
     # Initialize Music Tutor with TTS enabled
     print("\n🔧 Initializing Music Tutor with TTS...")
-    runner = MusicTutorRunner(
+    runner = MusicTutor(
         enable_tts=True,
-        tts_device="auto",  # Will try CUDA first, fall back to CPU
-        audio_output_dir="demo_audio",
-        music_only=True
+        tts_device="auto",  # Will try to find available voice
+        audio_output_dir="demo_audio"
     )
     
     if not runner.enable_tts:
@@ -101,7 +100,7 @@ def demo_voice_selection():
                 print(f"  {i+1}. {voice.name} ({voice.id})")
             
             print("\nTo use a specific voice:")
-            print("python qwen_music_tutor.py --enable-tts --audio-prompt-path <voice_id>")
+            print("python openai_music_tutor.py --enable-tts --tts-device <voice_id>")
             print("(Where <voice_id> is one of the IDs shown above)")
         else:
             print("❌ No system voices found")
@@ -112,7 +111,7 @@ def demo_voice_selection():
         print(f"❌ Failed to enumerate voices: {str(e)}")
     
     # Test with different voice
-    runner = MusicTutorRunner(
+    runner = MusicTutor(
         enable_tts=True,
         audio_output_dir="voice_demo_output"
     )

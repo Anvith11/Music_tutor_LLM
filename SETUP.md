@@ -1,272 +1,327 @@
-# Setup Guide - Qwen2-Audio Music Tutor
+# Setup Guide - OpenAI Music Tutor
 
-**Local AI-powered music education with native audio input/output capabilities**
-
-## 🍎 **macOS Quick Start** (Recommended for Mac users)
-
-If you're on macOS (including Apple Silicon M1/M2/M3), use the macOS-specific requirements:
-
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd <repo-name>
-
-# Install macOS-compatible dependencies (no CUDA requirements)
-pip install -r requirements_macos.txt
-
-# Test setup
-python test_qwen_setup.py
-```
-
-**Note**: The first run will download the Qwen2-Audio model (~5-10GB), which may take several minutes.
-
----
+This guide will help you set up the OpenAI Music Tutor with comprehensive four-pillar knowledge integration.
 
 ## Prerequisites
 
-- **Python**: 3.8 or higher
-- **GPU**: NVIDIA GPU with 16GB+ VRAM (recommended for CUDA systems)
-- **RAM**: 32GB+ system memory (recommended)
-- **Storage**: 20GB+ free disk space for model downloads
-- **CUDA**: 11.8 or higher for GPU acceleration (Linux/Windows only)
+### 1. OpenAI API Key
+- Visit [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Create an account or sign in
+- Generate a new API key
+- Keep this key secure - you'll need it for setup
 
-### 🖥️ **Platform Notes:**
-- **macOS**: Uses CPU/MPS backend (no CUDA support)
-- **Linux/Windows**: Can use CUDA for GPU acceleration
-- **Apple Silicon**: Optimized for M1/M2/M3 processors
+### 2. Python Environment
+- **Python 3.7+** (recommended: Python 3.8 or later)
+- **pip** package manager
+- **Internet connection** for API calls
+
+### 3. System Requirements
+- **Memory**: 100MB+ available RAM
+- **Storage**: 50MB for knowledge files
+- **Audio**: Optional, for TTS features
 
 ## Installation
 
-### 1. Clone the repository:
+### Option 1: Quick Setup (Recommended)
+
+1. **Clone or download the repository**
+2. **Run the setup script**:
+   ```bash
+   chmod +x run_openai_tutor.sh
+   ./run_openai_tutor.sh --help
+   ```
+
+The script will automatically:
+- Check Python installation
+- Install required packages
+- Verify setup
+- Launch the tutor
+
+### Option 2: Manual Setup
+
+1. **Install Python dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Verify installation**:
+   ```bash
+   python test_openai_setup.py
+   ```
+
+3. **Set up API key** (see Configuration section below)
+
+## Configuration
+
+### Environment Variable (Recommended)
+
+Set your OpenAI API key as an environment variable:
+
+**macOS/Linux:**
 ```bash
-git clone <your-repo-url>
-cd <repo-name>
+export OPENAI_API_KEY="your-api-key-here"
+echo 'export OPENAI_API_KEY="your-api-key-here"' >> ~/.bashrc
 ```
 
-### 2. Install dependencies:
-```bash
-pip install -r requirements.txt
+**Windows (PowerShell):**
+```powershell
+$env:OPENAI_API_KEY="your-api-key-here"
+[Environment]::SetEnvironmentVariable("OPENAI_API_KEY", "your-api-key-here", "User")
 ```
 
-**Note**: This will install PyTorch, Transformers, audio processing libraries, and other dependencies needed for Qwen2-Audio.
+### Alternative: Command Line
 
-### 3. Verify installation:
+Pass the API key directly when running:
 ```bash
-# Check GPU availability
-python -c "import torch; print('GPU Available:', torch.cuda.is_available())"
-
-# Check audio processing
-python -c "import librosa, soundfile; print('Audio libraries ready')"
-
-# Check Transformers
-python -c "from transformers import AutoProcessor; print('Transformers ready')"
+python openai_music_tutor.py --api-key "your-api-key-here" --interactive
 ```
 
-## Quick Start
+## Verification
 
-### Basic Usage:
+### Test Basic Setup
+
 ```bash
-# Interactive mode
-python qwen_music_tutor.py --interactive
-
-# Single text question
-python qwen_music_tutor.py --prompt "What is the circle of fifths?"
-
-# Audio analysis
-python qwen_music_tutor.py --audio song.wav --prompt "What key is this in?"
+python test_openai_setup.py
 ```
 
-### Model Selection:
+This will check:
+- ✅ Python dependencies
+- ✅ OpenAI API connection
+- ✅ Knowledge system files
+- ✅ Optional TTS capabilities
+
+### Test Interactive Mode
+
 ```bash
-# Default model (16GB+ VRAM)
-python qwen_music_tutor.py --interactive
-
-# Memory-optimized model (12GB+ VRAM)
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ --interactive
-
-# Full audio generation model (24GB+ VRAM)
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B --interactive
+python openai_music_tutor.py --interactive
 ```
 
-## Model Options
+Try asking: "What is a C major chord?"
 
-| Model | VRAM | Features | Best For |
-|-------|------|----------|----------|
-| `Qwen/Qwen2-Audio-7B-Instruct` | 16GB+ | Text + Audio input | General use (default) |
-| `Qwen/Qwen2.5-Omni-7B` | 24GB+ | Text + Audio I/O | Audio generation |
-| `Qwen/Qwen2.5-Omni-7B-AWQ` | 12GB+ | Quantized version | Lower VRAM |
+### Expected Output
+
+```
+🎵 INTERACTIVE MUSIC TUTOR SESSION 🎵
+============================================
+Ask me about music theory, Nashville numbers, instruments, production, or performance!
+Type 'quit', 'exit', or 'bye' to end the session.
+============================================
+
+🎵 You: What is a C major chord?
+
+🤖 Tutor: A C major chord consists of three notes:
+- C (root)
+- E (major third)
+- G (perfect fifth)
+
+In Nashville numbers, this would be the "1" chord in the key of C major.
+```
 
 ## Advanced Configuration
 
-### Memory Optimization:
+### Model Selection
+
+Choose different OpenAI models:
+
 ```bash
-# Use quantized model
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
+# Use GPT-3.5-turbo (default, faster, cheaper)
+python openai_music_tutor.py --model "gpt-3.5-turbo"
 
-# Reduce token limits
-python qwen_music_tutor.py --max-tokens 400 --context-limit 3
+# Use GPT-4 (more intelligent, slower, more expensive)
+python openai_music_tutor.py --model "gpt-4"
 
+# Use GPT-4-turbo (balance of speed and intelligence)
+python openai_music_tutor.py --model "gpt-4-turbo-preview"
+```
+
+### Response Customization
+
+```bash
 # Concise responses
-python qwen_music_tutor.py --concise
+python openai_music_tutor.py --concise
+
+# Higher creativity
+python openai_music_tutor.py --temperature 0.9
+
+# More deterministic responses
+python openai_music_tutor.py --temperature 0.3
+
+# Longer responses
+python openai_music_tutor.py --max-tokens 1200
 ```
 
-### Audio Settings:
+### Text-to-Speech Setup
+
+Enable voice responses:
+
 ```bash
-# Save audio responses
-python qwen_music_tutor.py --save-audio --audio-output-dir my_audio
+# Install TTS dependencies
+pip install pyttsx3
 
-# Custom sampling rate
-python qwen_music_tutor.py --audio-sampling-rate 22050
+# Enable TTS
+python openai_music_tutor.py --enable-tts --interactive
 
-# Device selection
-python qwen_music_tutor.py --device cuda  # or 'cpu' for CPU-only
+# Save audio files
+python openai_music_tutor.py --enable-tts --save-audio
 ```
 
-### Conversation Modes:
-```bash
-# Single question mode (no context)
-python qwen_music_tutor.py --single-mode
+## Knowledge System Setup
 
-# Allow non-music questions
-python qwen_music_tutor.py --allow-all-topics
+The tutor includes four integrated knowledge systems:
 
-# Custom temperature
-python qwen_music_tutor.py --temperature 0.5
-```
+### 1. Nashville Numbers (Built-in)
+Always available - no additional setup required.
 
-## Audio Input Support
+### 2. Slakh Dataset (Optional)
+Professional instrument knowledge:
+- File: `slakh_instrument_data.py`
+- Status: Automatically loaded if present
 
-### Supported Formats:
-- **WAV** - Uncompressed audio (recommended)
-- **MP3** - Compressed audio
-- **M4A** - Apple audio format
-- **FLAC** - Lossless compression
+### 3. Music Theory (Optional)
+Comprehensive theory curriculum:
+- File: `music_theory_dataset.json`
+- Status: Automatically loaded if present
 
-### Audio Guidelines:
-- **Max Length**: 30 seconds recommended
-- **Sample Rate**: Automatically resampled to 16kHz
-- **Quality**: Clear audio with minimal background noise works best
-- **Content**: Music questions, music audio, or musical examples
-
-### Example Audio Commands:
-```bash
-# Audio-only input
-python qwen_music_tutor.py --audio question.wav
-
-# Audio + text prompt
-python qwen_music_tutor.py --audio song.wav --prompt "Analyze the harmony"
-
-# Interactive mode with audio support
-python qwen_music_tutor.py --interactive
-# Then type: audio path/to/file.wav
-```
+### 4. Professional Performance (Optional)
+Advanced performance techniques:
+- File: `four_pillar_training_data.json`
+- Status: Automatically loaded if present
 
 ## Troubleshooting
 
-### GPU Memory Issues:
+### Common Issues
+
+#### 1. API Key Errors
+
+**Error**: `ValueError: OpenAI API key required`
+
+**Solution**:
 ```bash
-# Check GPU memory
-nvidia-smi
-
-# Try quantized model
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
-
-# Reduce memory usage
-python qwen_music_tutor.py --max-tokens 300 --context-limit 2
+export OPENAI_API_KEY="sk-your-actual-key-here"
 ```
 
-### Model Loading Problems:
+#### 2. Import Errors
+
+**Error**: `ModuleNotFoundError: No module named 'openai'`
+
+**Solution**:
 ```bash
-# Check internet connection (first download)
-ping huggingface.co
-
-# Clear Hugging Face cache if corrupted
-rm -rf ~/.cache/huggingface/
-
-# Check disk space
-df -h
+pip install --upgrade openai
 ```
 
-### Audio Processing Issues:
+#### 3. Connection Errors
+
+**Error**: `OpenAI API Connection - Failed`
+
+**Solutions**:
+- Check internet connection
+- Verify API key is correct
+- Check OpenAI service status
+- Ensure you have API credits
+
+#### 4. TTS Errors
+
+**Error**: TTS not working
+
+**Solutions**:
 ```bash
-# Test audio file
-python -c "import librosa; data, sr = librosa.load('your_audio.wav'); print(f'Loaded {len(data)} samples at {sr}Hz')"
+# Install TTS package
+pip install pyttsx3
 
-# Check audio format
-file your_audio.wav
-
-# Convert audio format if needed
-ffmpeg -i input.mp3 output.wav
+# On macOS, may need additional permissions
+# System Preferences > Security & Privacy > Privacy > Accessibility
 ```
 
-### CUDA Issues:
+### Diagnostic Commands
+
 ```bash
-# Check NVIDIA driver
-nvidia-smi
+# Test full setup
+python test_openai_setup.py
 
-# Check CUDA installation
-nvcc --version
+# Test specific model
+python openai_music_tutor.py --model "gpt-3.5-turbo" --prompt "test"
 
-# Test PyTorch CUDA
-python -c "import torch; print(torch.version.cuda)"
-
-# Force CPU mode if needed
-python qwen_music_tutor.py --device cpu
+# Debug mode with verbose output
+python openai_music_tutor.py --prompt "test" --no-stream
 ```
 
 ## Performance Optimization
 
-### For Best Performance:
-1. **Use SSD storage** for faster model loading
-2. **Ensure adequate cooling** for sustained GPU performance
-3. **Close other GPU applications** to free VRAM
-4. **Use quantized models** if memory constrained
-5. **Batch multiple questions** in interactive mode
+### API Usage Optimization
 
-### Monitoring:
 ```bash
-# Monitor GPU usage
-watch nvidia-smi
+# Use streaming for better perceived performance
+python openai_music_tutor.py --interactive  # (streaming enabled by default)
 
-# Check Python memory usage
-python -c "import psutil; print(f'RAM: {psutil.virtual_memory().percent}%')"
+# Disable streaming for batch processing
+python openai_music_tutor.py --no-stream --prompt "your question"
+
+# Limit conversation context to reduce costs
+python openai_music_tutor.py --context-limit 4
 ```
 
-## Security Notes
+### Cost Management
 
-- **Local Processing**: All data stays on your machine
-- **Model Downloads**: Models downloaded from Hugging Face (trusted source)
-- **No API Keys**: No external API keys or internet required after setup
-- **Privacy**: Your audio and conversations remain private
+- **Model Choice**: GPT-3.5-turbo is ~10x cheaper than GPT-4
+- **Token Limits**: Use `--max-tokens` to control response length
+- **Context Management**: Use `--single-mode` for independent questions
+- **Concise Mode**: Use `--concise` for shorter responses
 
-## System Requirements by Use Case
+## Integration Examples
 
-### Music Student (Basic):
-- **GPU**: 12GB VRAM (RTX 3060 Ti, 4070)
-- **Model**: Qwen2.5-Omni-7B-AWQ
-- **Usage**: Text questions, basic audio analysis
+### Bash Script Integration
 
-### Music Teacher (Standard):
-- **GPU**: 16GB VRAM (RTX 4080, 4070 Ti)
-- **Model**: Qwen2-Audio-7B-Instruct
-- **Usage**: Interactive lessons, audio analysis, demonstrations
+```bash
+#!/bin/bash
+# ask_music_question.sh
 
-### Music Professional (Advanced):
-- **GPU**: 24GB VRAM (RTX 4090, A5000)
-- **Model**: Qwen2.5-Omni-7B
-- **Usage**: Audio generation, complex analysis, studio work
+question="$1"
+if [ -z "$question" ]; then
+    echo "Usage: $0 'your music question'"
+    exit 1
+fi
 
-## Getting Help
+python openai_music_tutor.py --prompt "$question" --concise --no-stream
+```
+
+### Python Script Integration
+
+```python
+#!/usr/bin/env python3
+import subprocess
+import sys
+
+def ask_music_question(question):
+    result = subprocess.run([
+        'python', 'openai_music_tutor.py',
+        '--prompt', question,
+        '--no-stream'
+    ], capture_output=True, text=True)
+    
+    return result.stdout
+
+# Example usage
+answer = ask_music_question("What is a ii-V-I progression?")
+print(answer)
+```
+
+## Next Steps
+
+1. **Run the test**: `python test_openai_setup.py`
+2. **Try interactive mode**: `python openai_music_tutor.py --interactive`
+3. **Explore the four-pillar knowledge system**
+4. **Customize settings for your needs**
+5. **Start learning music!**
+
+## Support
 
 If you encounter issues:
 
-1. **Check system requirements** - Ensure your hardware meets minimums
-2. **Update drivers** - Latest NVIDIA drivers recommended
-3. **Check logs** - Error messages provide diagnostic information
-4. **Try different models** - AWQ versions require less memory
-5. **Monitor resources** - Use `nvidia-smi` and `htop` to check usage
+1. Run `python test_openai_setup.py` for diagnostics
+2. Check the troubleshooting section above
+3. Verify your OpenAI API key and credits
+4. Ensure you have the latest version of the code
 
-For additional support, check the project documentation or open an issue with:
-- Your system specifications
-- Error messages
-- Steps to reproduce the problem 
+---
+
+🎵 **You're ready to start your musical journey with AI assistance!** 

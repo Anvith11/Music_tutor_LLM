@@ -1,254 +1,253 @@
-# 🎵 Music Tutor LLM - Qwen2-Audio Edition
+# Music Tutor using OpenAI
 
-**AI-Powered Music Education with Four-Pillar Knowledge System**
+A comprehensive Python interface to run an AI music tutor using OpenAI's GPT models with four-pillar music knowledge integration.
 
-Powered by **Qwen2-Audio** for native audio input/output capabilities and local inference
+## 🎵 Four-Pillar Knowledge System
 
-## 🌟 Key Features
+This music tutor integrates four comprehensive knowledge sources:
 
-### 🔊 **Native Audio Capabilities**
-- **Audio Input**: Speak your music questions naturally
-- **Audio Analysis**: Analyze music files and audio recordings
-- **Multimodal**: Combine text and audio for rich interactions
-- **Local Processing**: All audio processing happens on your machine
+1. **🎯 Nashville Numbers** - Practical chord notation and transposition
+2. **🎛️ Slakh Dataset** - Professional instrument and production knowledge  
+3. **📚 Music Theory** - Complete educational curriculum from musictheory.net
+4. **🎸 Professional Performance** - Advanced performance, ear training, and live techniques
 
-### 🖥️ **Local & Private**
-- **No API costs** - Free to use after setup
-- **Privacy focused** - Your data stays on your machine
-- **Offline capable** - Works without internet after model download
-- **GPU accelerated** - Powerful local inference
+## ✨ Key Features
 
-## 🎯 Four-Pillar Music Knowledge System
+- **🤖 OpenAI GPT Integration**: Powered by GPT-3.5-turbo or GPT-4 for intelligent responses
+- **🎵 Music-Only Mode**: Focused exclusively on music education (default)
+- **🔊 Text-to-Speech**: Optional voice output for responses
+- **💬 Interactive Chat**: Conversational learning experience
+- **📚 Comprehensive Knowledge**: Four integrated knowledge systems
+- **🔐 Secure**: Uses environment variables for API key management
 
-Comprehensive music knowledge covering:
+## Prerequisites
 
-1. **🎵 Nashville Numbers** - Practical chord notation and transposition
-2. **🎛️ Slakh Dataset** - 34 professional instrument classes with MIDI mappings
-3. **📖 Music Theory** - Complete educational curriculum from musictheory.net
-4. **🎸 Professional Performance** - Advanced techniques, ear training, and live skills
+1. **OpenAI API Key**: Get your API key from [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. **Python 3.7+**: Make sure Python is installed on your system
 
-## 🚀 Quick Start
+## Quick Start
 
-### 1. System Requirements
-- **GPU**: NVIDIA with 16GB+ VRAM (recommended)
-- **RAM**: 32GB+ system memory
-- **Storage**: 20GB+ free space for model download
-- **Python**: 3.8 or higher
+1. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### 2. Installation
+2. **Set your OpenAI API key**:
+   ```bash
+   export OPENAI_API_KEY="your-api-key-here"
+   ```
 
-#### For macOS users (Recommended):
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd <repo-name>
+3. **Run the music tutor**:
+   ```bash
+   python openai_music_tutor.py --interactive
+   ```
 
-# Install macOS-compatible dependencies
-pip install -r requirements_macos.txt
-```
+## Usage Examples
 
-#### For Linux/Windows with CUDA:
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd <repo-name>
+### Interactive Mode (Recommended)
 
-# Install full dependencies (includes CUDA optimizations)
-pip install -r requirements.txt
-```
-
-### 3. Run the Music Tutor
-```bash
-# Interactive mode
-python qwen_music_tutor.py --interactive
-
-# Single text question
-python qwen_music_tutor.py --prompt "What is the circle of fifths?"
-
-# Audio analysis
-python qwen_music_tutor.py --audio song.wav --prompt "What key is this in?"
-
-# Both text and audio input
-python qwen_music_tutor.py --audio question.wav --prompt "Also explain the theory"
-```
-
-## 📊 Model Options
-
-| Model | VRAM | Features | Best For |
-|-------|------|----------|----------|
-| `Qwen/Qwen2-Audio-7B-Instruct` | 16GB+ | Text + Audio input | General use (default) |
-| `Qwen/Qwen2.5-Omni-7B` | 24GB+ | Text + Audio I/O | Audio generation |
-| `Qwen/Qwen2.5-Omni-7B-AWQ` | 12GB+ | Memory optimized | Lower VRAM |
+Start a conversational music learning session:
 
 ```bash
-# Use specific model
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ --interactive
+python openai_music_tutor.py --interactive
 ```
 
-## 💬 Usage Examples
+### Single Question Mode
 
-### Basic Music Questions
-```bash
-python qwen_music_tutor.py --prompt "Explain secondary dominants in jazz"
-```
-
-### Audio Analysis
-```bash
-# Analyze audio file
-python qwen_music_tutor.py --audio guitar_riff.wav --prompt "What chords are being played?"
-
-# Voice questions
-python qwen_music_tutor.py --audio voice_question.wav
-```
-
-### Nashville Numbers
-```
-🔹 You: "Convert C-Am-F-G to Nashville numbers"
-🤖 Response: "That's 1-6m-4-5 in the key of C major..."
-```
-
-### Professional Analysis
-```
-🔹 You: [Audio of piano performance]
-🤖 Response: "I hear a jazz voicing with a maj7#11 chord, played with rootless voicing technique..."
-```
-
-## 🎼 Interactive Mode Commands
+Ask a specific music question:
 
 ```bash
-python qwen_music_tutor.py --interactive
+python openai_music_tutor.py --prompt "What is the Nashville number system?"
 ```
 
-**Commands available:**
-- `quit`, `exit`, `bye` - Exit the program
-- `clear` - Clear conversation history
-- `single` - Toggle single-question mode
-- `context` - Toggle conversational mode
-- `audio <path>` - Include audio file in message
-- `status` - Show system status
+### With Different Models
 
-## 🔧 Advanced Configuration
+Use GPT-4 for more detailed responses:
 
-### Memory Optimization
 ```bash
-# Use quantized model for lower VRAM
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
-
-# Reduce context and token limits
-python qwen_music_tutor.py --max-tokens 400 --context-limit 3
+python openai_music_tutor.py --model "gpt-4" --prompt "Explain jazz harmony principles"
 ```
 
-### Audio Settings
+### Enable Text-to-Speech
+
+Get spoken responses:
+
 ```bash
-# Save audio responses to files
-python qwen_music_tutor.py --save-audio --audio-output-dir my_audio
-
-# Custom audio sampling rate
-python qwen_music_tutor.py --audio-sampling-rate 22050
+python openai_music_tutor.py --enable-tts --interactive
 ```
 
-### Response Style
+## Command Line Options
+
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--prompt` | `-p` | Single prompt to send to the music tutor |
+| `--model` | `-m` | OpenAI model name (default: gpt-3.5-turbo) |
+| `--api-key` | `-k` | OpenAI API key (or set OPENAI_API_KEY env var) |
+| `--interactive` | `-i` | Run in interactive mode |
+| `--no-stream` | | Disable streaming responses |
+| `--temperature` | `-t` | Temperature for response generation (0.0-1.0) |
+| `--max-tokens` | | Maximum number of tokens to generate |
+| `--concise` | | Force very concise responses |
+| `--single-mode` | | Single question mode (no context) |
+| `--context-limit` | | Maximum conversation history length |
+| `--allow-all-topics` | | Allow non-music questions |
+| `--enable-tts` | | Enable text-to-speech |
+| `--save-audio` | | Save audio responses to files |
+
+## Example Conversations
+
+**Nashville Numbers:**
+```
+You: Convert C-Am-F-G to Nashville numbers
+Tutor: In the key of C major, that progression would be:
+C-Am-F-G = 1-6m-4-5
+
+This is one of the most popular progressions in music!
+```
+
+**Music Theory:**
+```
+You: What's a ii-V-I progression?
+Tutor: A ii-V-I is a fundamental chord progression where:
+- ii: minor chord built on the 2nd degree
+- V: major (dominant) chord on the 5th degree  
+- I: major chord on the 1st degree (home)
+
+In C major: Dm-G-C (2m-5-1)
+```
+
+**Instruments & Production:**
+```
+You: What's the difference between a Stratocaster and Les Paul?
+Tutor: Key differences:
+- Stratocaster: Bright, articulate tone with single-coil pickups
+- Les Paul: Warm, thick tone with humbucker pickups
+- Body: Strat uses alder/ash, Les Paul uses mahogany with maple cap
+```
+
+## System Requirements
+
+- **Python**: 3.7 or later
+- **Internet**: Required for OpenAI API calls
+- **Memory**: 100MB+ available RAM
+- **Storage**: 50MB for knowledge files
+- **Optional**: Audio device for TTS features
+
+## Setup and Configuration
+
+For detailed setup instructions, see [SETUP.md](SETUP.md).
+
+### Environment Variables
+
 ```bash
-# Concise responses
-python qwen_music_tutor.py --concise --max-tokens 300
+# Required
+export OPENAI_API_KEY="your-api-key-here"
 
-# Allow non-music questions
-python qwen_music_tutor.py --allow-all-topics
+# Optional
+export OPENAI_ORG_ID="your-org-id"  # If using organization
 ```
 
-## 📈 Performance & Capabilities
+### Configuration Files
 
-### Audio Processing
-- **Formats**: WAV, MP3, M4A, FLAC
-- **Sample Rate**: Automatically resampled to 16kHz
-- **Max Length**: 30 seconds recommended
-- **Processing**: Real-time audio analysis
+The system automatically loads these knowledge files if available:
+- `four_pillar_training_data.json` - Nashville Numbers and comprehensive data
+- `music_theory_dataset.json` - Music theory curriculum
+- `slakh_instrument_data.py` - Professional instrument knowledge
 
-### Knowledge Base
-- **500+ music keywords** for intelligent topic detection
-- **Nashville number system** with automatic conversion
-- **34 instrument classes** from professional Slakh dataset
-- **Complete music theory** covering all major topics
-- **Performance techniques** for all skill levels
+## Knowledge System Details
 
-## 🔍 Troubleshooting
+### 1. Nashville Numbers (🎯)
+- Chord progression notation using numbers 1-7
+- Automatic transposition capabilities
+- Major and minor scale relationships
+- Practical chord substitutions
+
+### 2. Slakh Dataset (🎛️)
+- 34 professional instrument classes
+- MIDI program mappings
+- Synthesis and production techniques
+- Genre-specific instrument usage
+
+### 3. Music Theory (📚)
+- Complete musictheory.net curriculum
+- Scales, modes, and intervals
+- Harmonic analysis and voice leading
+- Notation and rhythm fundamentals
+
+### 4. Professional Performance (🎸)
+- Advanced performance techniques
+- Ear training methodologies
+- Live performance preparation
+- Studio recording practices
+
+## Troubleshooting
 
 ### Common Issues
 
-**Out of Memory:**
-```bash
-# Try quantized model
-python qwen_music_tutor.py --model Qwen/Qwen2.5-Omni-7B-AWQ
+1. **API Key Errors**:
+   ```bash
+   export OPENAI_API_KEY="your-actual-api-key"
+   ```
 
-# Reduce memory usage
-python qwen_music_tutor.py --max-tokens 300 --context-limit 2
+2. **Import Errors**:
+   ```bash
+   pip install --upgrade openai
+   ```
+
+3. **TTS Issues**:
+   ```bash
+   pip install pyttsx3
+   ```
+
+### Test Your Setup
+
+Run the setup test script:
+
+```bash
+python test_openai_setup.py
 ```
 
-**Model Loading Issues:**
-```bash
-# Check GPU status
-nvidia-smi
+## Development
 
-# Verify CUDA installation
-python -c "import torch; print(torch.cuda.is_available())"
+### Running Tests
+
+```bash
+python test_openai_setup.py
 ```
 
-**Audio Problems:**
-```bash
-# Test audio loading
-python -c "import librosa; librosa.load('your_audio.wav')"
+### File Structure
 
-# Check supported formats
-echo "Supported: WAV, MP3, M4A, FLAC"
+```
+.
+├── openai_music_tutor.py          # Main application
+├── requirements.txt               # Dependencies
+├── test_openai_setup.py          # Setup verification
+├── run_openai_tutor.sh           # Launch script
+├── four_pillar_training_data.json # Nashville Numbers data
+├── music_theory_dataset.json     # Theory curriculum
+└── slakh_instrument_data.py       # Instrument knowledge
 ```
 
-## 🎯 System Requirements Details
-
-### Minimum Requirements
-- **GPU**: 12GB+ VRAM (with AWQ model)
-- **RAM**: 16GB+ system memory
-- **Storage**: 15GB+ free space
-- **Internet**: Required for initial model download
-
-### Recommended Requirements
-- **GPU**: 16GB+ VRAM (RTX 4080, A4000, or better)
-- **RAM**: 32GB+ system memory
-- **Storage**: 25GB+ free space (SSD preferred)
-- **CUDA**: 11.8 or higher
-
-### Optimal Performance
-- **GPU**: 24GB+ VRAM (RTX 4090, A5000, or better)
-- **RAM**: 64GB+ system memory
-- **Storage**: 50GB+ NVMe SSD
-- **CPU**: 8+ cores for audio preprocessing
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Test with diverse musical content
-3. Add new knowledge to the four-pillar system
-4. Enhance audio processing capabilities
-5. Submit pull request with examples
+2. Create a feature branch
+3. Make your changes
+4. Test with `python test_openai_setup.py`
+5. Submit a pull request
 
-## 📄 License
+## License
 
-This project is open source and available under the MIT License.
+This project is open source. See LICENSE file for details.
 
-## 🎉 Acknowledgments
+## Acknowledgments
 
-- **Qwen Team** - For the amazing Qwen2-Audio multimodal model
-- **Music Theory Community** - For comprehensive educational resources
-- **Slakh Dataset** - For professional instrument and MIDI data
-- **Open Source Community** - For the tools and libraries that make this possible
+- **OpenAI** for providing the GPT models and API
+- **Nashville Numbers System** for practical chord notation
+- **Slakh Dataset** for professional music production knowledge
+- **musictheory.net** for comprehensive music theory curriculum
+- **Music Education Community** for inspiration and feedback
 
 ---
 
-**🎵 Ready to revolutionize your music learning with local AI? Get started now!**
-
-```bash
-# Check if your system is ready
-python -c "import torch; print('✅ Ready!' if torch.cuda.is_available() else '⚠️ GPU recommended')"
-
-# Start learning!
-python qwen_music_tutor.py --interactive
-``` 
+🎵 **Happy Learning!** Whether you're a beginner or professional, this tutor adapts to help you grow musically! 

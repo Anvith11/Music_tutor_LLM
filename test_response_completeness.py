@@ -17,7 +17,7 @@ def test_response_length(prompt, description):
     try:
         # Run the Music Tutor with the prompt
         result = subprocess.run([
-            sys.executable, "qwen_music_tutor.py", 
+            sys.executable, "openai_music_tutor.py", 
             "--prompt", prompt,
             "--no-stream"
         ], capture_output=True, text=True, timeout=60)

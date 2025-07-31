@@ -7,16 +7,16 @@ Demonstrates how the TinyLLAMA runner filters music vs non-music questions
 import sys
 import os
 
-# Add current directory to path to import qwen_music_tutor
+# Add current directory to path to import openai_music_tutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def test_music_detection():
     """Test the music topic detection functionality"""
     
     # Create a runner instance with music-only mode enabled
-    runner = MusicTutorRunner(music_only=True)
+    runner = MusicTutor()
     
     # Test questions - music-related
     music_questions = [
@@ -105,7 +105,7 @@ def test_response_examples():
     print("=" * 50)
     
     # Create runner (music-only mode)
-    runner = MusicTutorRunner(music_only=True)
+    runner = MusicTutor()
     
     test_cases = [
         ("What is the Nashville number system?", "Music question"),
@@ -132,14 +132,14 @@ if __name__ == "__main__":
         print("\n🔧 USAGE EXAMPLES:")
         print("-" * 50)
         print("# Music-only mode (default):")
-        print("python qwen_music_tutor.py -p \"What is a chord progression?\"")
+        print("python openai_music_tutor.py -p \"What is a chord progression?\"")
         print("\n# Allow all topics:")
-        print("python qwen_music_tutor.py --allow-all-topics -p \"What is Python?\"")
+        print("python openai_music_tutor.py --allow-all-topics -p \"What is Python?\"")
         print("\n# Interactive music-only mode:")
-        print("python qwen_music_tutor.py -i")
+        print("python openai_music_tutor.py -i")
         
     except ImportError as e:
-        print(f"❌ Error: Could not import qwen_music_tutor: {e}")
-        print("Make sure qwen_music_tutor.py is in the same directory")
+        print(f"❌ Error: Could not import openai_music_tutor: {e}")
+        print("Make sure openai_music_tutor.py is in the same directory")
     except Exception as e:
         print(f"❌ Error: {e}") 

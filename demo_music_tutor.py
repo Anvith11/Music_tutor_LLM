@@ -4,7 +4,7 @@ Music Tutor Demo (No API Required)
 Showcases the four-pillar knowledge system without OpenAI API calls
 """
 
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def demo_music_knowledge():
     """Demo the music knowledge system without API calls"""
@@ -14,7 +14,7 @@ def demo_music_knowledge():
     print()
     
     # Initialize the system
-    runner = MusicTutorRunner(music_only=True)
+    runner = MusicTutor()
     
     # Show knowledge status
     knowledge_status = runner.get_knowledge_status()
@@ -112,7 +112,7 @@ def show_billing_info():
     print("   • Very affordable for learning!")
     print()
     print("🎉 Once billing is set up:")
-    print("   python qwen_music_tutor.py --interactive")
+    print("   python openai_music_tutor.py --interactive")
 
 if __name__ == "__main__":
     demo_music_knowledge()

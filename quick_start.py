@@ -5,7 +5,7 @@ This script demonstrates how to use the music tutor with your API key.
 """
 
 import os
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def load_api_key():
     """Load API key from .env file or environment"""
@@ -37,10 +37,9 @@ def main():
     
     # Initialize the music tutor
     print("\n🔧 Initializing Music Tutor...")
-    runner = MusicTutorRunner(
+    runner = MusicTutor(
         api_key=api_key,
-        model="gpt-3.5-turbo",  # Use cost-effective model for demo
-        music_only=True
+        model="gpt-3.5-turbo"  # Use cost-effective model for demo
     )
     
     # Test connection
@@ -80,9 +79,9 @@ def main():
     
     print(f"\n🎉 Demo complete! Your music tutor is ready to use.")
     print(f"\n💡 To start interactive mode:")
-    print(f"   python qwen_music_tutor.py --interactive")
+    print(f"   python openai_music_tutor.py --interactive")
     print(f"\n💡 To ask a single question:")
-    print(f"   python qwen_music_tutor.py --prompt \"Your question here\"")
+    print(f"   python openai_music_tutor.py --prompt \"Your question here\"")
 
 if __name__ == "__main__":
     main() 

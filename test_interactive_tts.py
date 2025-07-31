@@ -3,7 +3,7 @@
 Test script for interactive TTS functionality
 """
 
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def test_interactive_tts():
     """Test the interactive TTS feature"""
@@ -12,7 +12,7 @@ def test_interactive_tts():
     
     # Test 1: Interactive mode
     print("\n1. Testing Interactive TTS Mode")
-    runner = MusicTutorRunner(enable_tts=True)
+    runner = MusicTutor(enable_tts=True)
     
     if runner.enable_tts:
         test_text = "A major scale consists of seven notes with a specific pattern of whole and half steps."
@@ -32,7 +32,7 @@ def test_interactive_tts():
     
     # Test 3: File saving mode
     print("\n3. Testing TTS with File Saving")
-    runner_with_save = MusicTutorRunner(enable_tts=True, save_audio=True)
+    runner_with_save = MusicTutor(enable_tts=True)
     
     if runner_with_save.enable_tts:
         test_text = "This response will also be saved to a file."

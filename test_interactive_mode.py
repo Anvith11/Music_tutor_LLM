@@ -4,7 +4,7 @@ Test Interactive Mode Without API Calls
 Tests the input handling and user interaction without making OpenAI API calls
 """
 
-from qwen_music_tutor import MusicTutorRunner
+from openai_music_tutor import MusicTutor
 
 def test_interactive_input():
     """Test interactive input handling without API calls"""
@@ -15,7 +15,7 @@ def test_interactive_input():
     print()
     
     # Initialize runner
-    runner = MusicTutorRunner(music_only=True)
+    runner = MusicTutor()
     
     # Test music detection without API calls
     print("🔍 Testing music topic detection...")
@@ -76,7 +76,7 @@ def test_simple_interactive():
     print("Type 'quit' to exit")
     print("="*50)
     
-    runner = MusicTutorRunner(music_only=True)
+    runner = MusicTutor()
     
     while True:
         try:
