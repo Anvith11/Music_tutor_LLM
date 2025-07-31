@@ -55,7 +55,7 @@ class MusicTutor:
     OpenAI-powered Music Tutor with four-pillar knowledge integration
     """
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-3.5-turbo",
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o",
                  enable_tts: bool = False, tts_device: Optional[str] = None,
                  audio_output_dir: str = "audio_output"):
         """Initialize the Music Tutor with OpenAI API"""
@@ -158,8 +158,18 @@ class MusicTutor:
             return False
 
     def _create_system_prompt(self) -> str:
-        """Create comprehensive system prompt with four-pillar knowledge"""
-        base_prompt = """You are an expert music instructor with comprehensive knowledge across four key areas:
+        """Create HorizonJam system prompt - music-only assistant"""
+        base_prompt = """You are HorizonJam, a helpful music theory tutor and assistant.
+
+CRITICAL INSTRUCTIONS:
+- You ONLY answer music-related questions
+- If the input is not about music (e.g., programming, history, math, or general trivia), politely decline
+- Stick to music theory, practice tips, chords, intervals, scales, notation, audio processing, or instruments
+- Use musical terms, and provide examples when helpful
+- DO NOT entertain off-topic conversations, jokes, or general chitchat
+- Always begin your answers with a confident tone and musical relevance
+
+You are an expert music instructor with comprehensive knowledge across four key areas:
 
 **1. NASHVILLE NUMBERS SYSTEM:**
 - Convert chord progressions to/from Nashville numbers
@@ -206,9 +216,9 @@ class MusicTutor:
         return base_prompt
 
     def is_music_related(self, prompt: str) -> bool:
-        """Enhanced music content detection using multiple knowledge sources"""
+        """HorizonJam music content detection - comprehensive music-only filtering"""
         
-        # Check against enhanced music keywords
+        # Check against enhanced music keywords from Slakh dataset
         if SLAKH_AVAILABLE:
             enhanced_keywords = get_enhanced_music_keywords()
             if any(keyword in prompt.lower() for keyword in enhanced_keywords):
@@ -218,18 +228,93 @@ class MusicTutor:
             if is_professional_music_term(prompt):
                 return True
         
-        # Basic music keywords as fallback
-        music_keywords = [
-            'music', 'chord', 'scale', 'note', 'key', 'rhythm', 'melody', 'harmony',
-            'instrument', 'guitar', 'piano', 'bass', 'drum', 'violin', 'saxophone',
-            'nashville', 'progression', 'theory', 'composition', 'song', 'practice',
-            'performance', 'audio', 'recording', 'production', 'mixing', 'mastering',
-            'tempo', 'beat', 'measure', 'interval', 'octave', 'sharp', 'flat',
-            'major', 'minor', 'diminished', 'augmented', 'jazz', 'blues', 'rock',
-            'classical', 'pop', 'folk', 'country', 'electronic', 'synthesizer'
+        # Comprehensive music keywords for HorizonJam
+        MUSIC_KEYWORDS = [
+            # Theory & Fundamentals
+            "music", "chord", "scale", "note", "interval", "key", "signature", "mode", "degree",
+            "major", "minor", "diminished", "augmented", "seventh", "ninth", "sus", "add",
+            "triad", "inversion", "progression", "cadence", "resolution", "voice leading",
+            "circle", "fifths", "fourth", "fifth", "third", "sixth", "second", "unison",
+            "perfect", "imperfect", "consonant", "dissonant", "tension", "release",
+            
+            # Instruments
+            "guitar", "piano", "violin", "drums", "bass", "saxophone", "trumpet", 
+            "flute", "cello", "viola", "ukulele", "mandolin", "harp", "organ", "synthesizer",
+            "keyboard", "accordion", "harmonica", "banjo", "dobro", "fiddle",
+            
+            # Musical Elements
+            "tempo", "rhythm", "beat", "meter", "time signature", "melody", "harmony",
+            "dynamics", "accent", "articulation", "phrase", "motif", "theme", "groove",
+            "swing", "shuffle", "syncopation", "polyrhythm", "cross rhythm",
+            
+            # Technical Terms
+            "midi", "audio", "frequency", "pitch", "octave", "semitone", "tone", "cent",
+            "transpose", "modulation", "tuning", "intonation", "timbre", "waveform",
+            "fundamental", "overtone", "harmonic", "resonance", "envelope",
+            
+            # Notation & Theory
+            "staff", "clef", "measure", "bar", "rest", "sharp", "flat", "natural",
+            "accidental", "notation", "tablature", "lead sheet", "chord chart", "chart",
+            "fake book", "real book", "standard", "tune", "head",
+            
+            # Performance & Practice
+            "practice", "technique", "fingering", "picking", "strumming", "bowing",
+            "breath", "embouchure", "vibrato", "bend", "slide", "hammer", "pull",
+            "legato", "staccato", "pizzicato", "arco", "glissando", "trill",
+            
+            # Styles & Genres
+            "jazz", "blues", "rock", "classical", "folk", "country", "metal", "funk",
+            "gospel", "latin", "reggae", "swing", "bebop", "fusion", "r&b", "soul",
+            "pop", "electronic", "ambient", "house", "techno", "dubstep", "hip hop",
+            
+            # Nashville Numbers & Analysis
+            "nashville", "numbers", "roman numeral", "analysis", "function",
+            "tonic", "subdominant", "dominant", "leading tone", "secondary dominant",
+            
+            # Audio Production
+            "recording", "mixing", "mastering", "eq", "equalizer", "reverb", "delay", 
+            "compression", "compressor", "limiter", "gate", "effect", "plugin", "daw",
+            "multitrack", "overdub", "punch", "bounce", "stems",
+            
+            # Song Structure
+            "verse", "chorus", "bridge", "intro", "outro", "solo", "riff", "lick",
+            "hook", "breakdown", "turnaround", "tag", "coda", "vamp", "jam",
+            
+            # Music Education
+            "lesson", "theory", "ear training", "sight reading", "music school",
+            "conservatory", "method", "etude", "exercise", "scale practice",
+            
+            # Performance Context
+            "gig", "session", "rehearsal", "soundcheck", "stage", "studio", "live",
+            "concert", "recital", "performance", "band", "ensemble", "orchestra",
+            "quartet", "trio", "duo", "solo", "accompaniment"
         ]
         
-        return any(keyword in prompt.lower() for keyword in music_keywords)
+        lowered = prompt.lower()
+        
+        # Check for music keywords
+        if any(keyword in lowered for keyword in MUSIC_KEYWORDS):
+            return True
+            
+        # Check for common music patterns using regex
+        import re
+        music_patterns = [
+            r'\b[A-G][#b]?\s*(major|minor|m|maj|dim|aug|\d|sus|add)\b',  # Chord patterns
+            r'\b\d+/\d+\b',  # Time signatures (4/4, 3/4, etc.)
+            r'\bbpm\b',       # Beats per minute
+            r'\b[A-G][#b]?\s*scale\b',  # Scale references
+            r'\bkey\s+of\s+[A-G][#b]?\b',  # Key references
+            r'\b\d+-\d+[m]?-\d+-\d+\b',  # Nashville number patterns (1-6m-4-5)
+            r'\b[IVivx]+\b',  # Roman numeral analysis
+            r'\b\d+th\b',     # Interval references (5th, 7th, etc.)
+        ]
+        
+        for pattern in music_patterns:
+            if re.search(pattern, lowered):
+                return True
+        
+        # If no music keywords or patterns found, it's not music-related
+        return False
 
     def generate_response(self, prompt: str, temperature: float = 0.7, 
                          max_tokens: int = 800, stream: bool = True,
@@ -237,7 +322,7 @@ class MusicTutor:
         """Generate streaming response using OpenAI API"""
         
         if not allow_all_topics and not self.is_music_related(prompt):
-            yield "I'm sorry, I can only explain music-related questions or concepts. What would you like to learn about music today?"
+            yield "🎵 Hi! I'm HorizonJam, your music theory tutor. I only answer music-related questions about theory, chords, scales, instruments, and practice tips. Please ask me something about music!"
             return
 
         try:
@@ -263,7 +348,7 @@ class MusicTutor:
                 
                 full_response = ""
                 for chunk in response:
-                    if chunk.choices[0].delta.get("content"):
+                    if chunk.choices[0].delta.content:
                         content = chunk.choices[0].delta.content
                         full_response += content
                         yield content
@@ -396,7 +481,7 @@ Examples:
     
     # Core arguments
     parser.add_argument('--prompt', '-p', type=str, help='Single prompt to send to the music tutor')
-    parser.add_argument('--model', '-m', type=str, default='gpt-3.5-turbo', help='OpenAI model name')
+    parser.add_argument('--model', '-m', type=str, default='gpt-4o', help='OpenAI model name')
     parser.add_argument('--api-key', '-k', type=str, help='OpenAI API key (or set OPENAI_API_KEY env var)')
     parser.add_argument('--no-stream', action='store_true', help='Disable streaming responses')
     parser.add_argument('--interactive', '-i', action='store_true', help='Run in interactive mode')
