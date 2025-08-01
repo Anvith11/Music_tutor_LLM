@@ -237,6 +237,20 @@ You are an expert music instructor with comprehensive knowledge across four key 
             "circle", "fifths", "fourth", "fifth", "third", "sixth", "second", "unison",
             "perfect", "imperfect", "consonant", "dissonant", "tension", "release",
             
+            # Advanced Music Theory
+            "chromatic", "diatonic", "enharmonic", "modal", "tonality", "atonal",
+            "counterpoint", "species counterpoint", "part writing", "tertian", "quartal", 
+            "quintal", "whole tone", "pentatonic", "hexatonic", "octatonic",
+            
+            # Cognitive/Music Perception
+            "ear training", "relative pitch", "perfect pitch", "sight singing", "audiation", 
+            "solfège", "movable do", "fixed do",
+            
+            # Compositional Concepts
+            "motivic development", "theme and variations", "through-composed", "binary form", 
+            "ternary form", "sonata", "rondo", "fugue", "countermelody", "ostinato", 
+            "pedal point", "sequence", "voice exchange",
+            
             # Instruments
             "guitar", "piano", "violin", "drums", "bass", "saxophone", "trumpet", 
             "flute", "cello", "viola", "ukulele", "mandolin", "harp", "organ", "synthesizer",
@@ -252,6 +266,15 @@ You are an expert music instructor with comprehensive knowledge across four key 
             "transpose", "modulation", "tuning", "intonation", "timbre", "waveform",
             "fundamental", "overtone", "harmonic", "resonance", "envelope",
             
+            # Electronic/Synthesis
+            "oscillator", "lfo", "filter", "adsr", "patch", "synth patch", "cv", "gate", 
+            "mod wheel", "sequencer", "step sequencer", "sampler", "sample rate", "bit depth", 
+            "aliasing", "vst", "virtual instrument",
+            
+            # Audio/Music Formats & Metadata
+            "mp3", "wav", "aiff", "flac", "midi file", "bpm", "metadata", "id3", "loop", 
+            "stem", "track name", "tempo map",
+            
             # Notation & Theory
             "staff", "clef", "measure", "bar", "rest", "sharp", "flat", "natural",
             "accidental", "notation", "tablature", "lead sheet", "chord chart", "chart",
@@ -261,6 +284,10 @@ You are an expert music instructor with comprehensive knowledge across four key 
             "practice", "technique", "fingering", "picking", "strumming", "bowing",
             "breath", "embouchure", "vibrato", "bend", "slide", "hammer", "pull",
             "legato", "staccato", "pizzicato", "arco", "glissando", "trill",
+            
+            # Contemporary/Pop Songwriting
+            "topline", "co-write", "hook writing", "beat making", "loop-based",
+            "pre-chorus", "drop", "build", "climax", "melodic contour",
             
             # Styles & Genres
             "jazz", "blues", "rock", "classical", "folk", "country", "metal", "funk",
@@ -281,8 +308,17 @@ You are an expert music instructor with comprehensive knowledge across four key 
             "hook", "breakdown", "turnaround", "tag", "coda", "vamp", "jam",
             
             # Music Education
-            "lesson", "theory", "ear training", "sight reading", "music school",
-            "conservatory", "method", "etude", "exercise", "scale practice",
+            "lesson", "theory", "sight reading", "music school", "conservatory", 
+            "method", "etude", "exercise", "scale practice",
+            
+            # Music + AI / Music Tech
+            "music generation", "music ai", "openai music", "melody generation",
+            "chord recognition", "symbolic music", "note sequence", "midi generation", 
+            "audio transcription", "spectrogram",
+            
+            # Learning/Practice Intent (music-specific only)
+            "practice music", "how to play", "music lesson", "music practice",
+            "sound like", "hear music", "listen to music",
             
             # Performance Context
             "gig", "session", "rehearsal", "soundcheck", "stage", "studio", "live",
@@ -299,6 +335,7 @@ You are an expert music instructor with comprehensive knowledge across four key 
         # Check for common music patterns using regex
         import re
         music_patterns = [
+            # Musical notation patterns
             r'\b[A-G][#b]?\s*(major|minor|m|maj|dim|aug|\d|sus|add)\b',  # Chord patterns
             r'\b\d+/\d+\b',  # Time signatures (4/4, 3/4, etc.)
             r'\bbpm\b',       # Beats per minute
@@ -307,10 +344,27 @@ You are an expert music instructor with comprehensive knowledge across four key 
             r'\b\d+-\d+[m]?-\d+-\d+\b',  # Nashville number patterns (1-6m-4-5)
             r'\b[IVivx]+\b',  # Roman numeral analysis
             r'\b\d+th\b',     # Interval references (5th, 7th, etc.)
+            
+            # Intent-based patterns for music learning (case insensitive)
+            r'(how to|what is|explain|difference between|meaning of|example of).*\b(chord|scale|note|sound|song|music|play|instrument|theory|rhythm|melody|harmony|beat|tempo|key)\b',
+            r'(learn|practice|improve|study).*\b(music|guitar|piano|bass|drums|violin|singing|theory|chord|scale|instrument)\b',
+            r'(what does|what means?).*\b(chord|scale|note|key|tempo|rhythm|melody|harmony|progression|interval)\b',
+            r'\b(play|playing|learn|practice).*\b(guitar|piano|bass|drums|violin|saxophone|flute|ukulele|mandolin|music|instrument)\b',
+            r'\b(music|song|chord|scale|note|key|tempo|instrument)\b.*(question|help|explain|understand|learn|practice)',
+            
+            # Music technology patterns
+            r'\b(daw|vst|plugin|midi|audio)\b',
+            r'\b(recording|mixing|mastering|production)\b',
+            r'\b(synthesizer|synth|oscillator|filter|lfo|adsr)\b',
+            
+            # Advanced theory patterns
+            r'\b(counterpoint|voice leading|species|fugue|sonata|rondo)\b',
+            r'\b(chromatic|diatonic|modal|atonal|pentatonic|whole tone)\b',
+            r'\b(ear training|sight reading|solfège|perfect pitch|relative pitch)\b',
         ]
         
         for pattern in music_patterns:
-            if re.search(pattern, lowered):
+            if re.search(pattern, lowered, re.IGNORECASE):
                 return True
         
         # If no music keywords or patterns found, it's not music-related
